@@ -477,6 +477,22 @@
                 <button class="btn btn-secondary" onclick="showJoinRoom()">🚪 Odaya Katıl</button>
             </div>
 
+            <!-- Aktif Odalar Listesi -->
+            <div id="room-list-container" class="form-section" style="margin-top: 20px;">
+                <h3 style="margin-bottom: 10px; font-size: 1.1rem;">🔥 Aktif Odalar</h3>
+                <div id="active-rooms-list" style="max-height: 200px; overflow-y: auto;">
+                    <p style="color: rgba(255,255,255,0.5); font-size: 0.9rem;">Oda aranıyor...</p>
+                </div>
+            </div>
+
+            <!-- Aktif Odalar Listesi -->
+            <div id="room-list-container" class="form-section" style="margin-top: 20px;">
+                <h3 style="margin-bottom: 10px; font-size: 1.1rem;">🔥 Aktif Odalar</h3>
+                <div id="active-rooms-list" style="max-height: 200px; overflow-y: auto;">
+                    <p style="color: rgba(255,255,255,0.5); font-size: 0.9rem;">Oda aranıyor...</p>
+                </div>
+            </div>
+
             <!-- Oda Kurma -->
             <div id="create-form" class="form-section hidden">
                 <h3 style="margin-bottom: 15px;">Oda Oluştur</h3>
@@ -593,6 +609,13 @@
         let roomCode = '';
         let hostConnection = null;
 
+        // Lobby System
+        let lobbyConnection = null;
+        let isLobbyManager = false;
+        const LOBBY_ID = 'vampir-koylu-master-lobby-' + new Date().getDate();
+
+
+
         let gameState = {
             phase: 'lobby',
             players: {},
@@ -665,7 +688,10 @@
         function handleNewConnection(conn) {
             conn.on('open', () => {
                 connections[conn.peer] = conn;
-                conn.on('data', (data) => handleMessage(conn.peer, data));
+                conn.on('data', (data) => {
+                    if (isLobbyManager) handleLobbyMessage(conn, data);
+                    else handleMessage(conn.peer, data);
+                });
                 conn.on('close', () => handleDisconnect(conn.peer));
             });
         }
@@ -1198,6 +1224,8 @@
         function hideJoinRoom() { document.getElementById('join-form').classList.add('hidden'); }
         function leaveLobby() { backToHome(); }
 
+        // Start App
+        initApp();
     </script>
 </body>
 
