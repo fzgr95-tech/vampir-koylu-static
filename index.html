@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vampir Köylü</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f0c29;
+            --primary-color: #00d4ff;
+            --secondary-color: #ff0055;
+            --accent-color: #7000ff;
+            --text-color: #ffffff;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --card-radius: 16px;
+            --font-main: 'Outfit', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            padding: 20px;
+            margin: 0 auto;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        h1.game-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 2rem;
+            background: linear-gradient(var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn {
+            border: none;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: #000;
+            box-shadow: 0 0 15px var(--primary-color);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .btn-action {
+            background: linear-gradient(90deg, var(--secondary-color), var(--accent-color));
+            color: white;
+        }
+
+        .btn-text {
+            background: transparent;
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: underline;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-family: inherit;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .form-section {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 20px;
+            border-radius: var(--card-radius);
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .players-list {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .player-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .player-avatar {
+            width: 50px;
+            height: 50px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .role-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .role-vampire {
+            background: rgba(255, 0, 85, 0.2);
+            color: var(--secondary-color);
+            border: 1px solid var(--secondary-color);
+        }
+
+        .role-villager {
+            background: rgba(0, 212, 255, 0.2);
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        .role-doctor {
+            background: rgba(0, 255, 100, 0.2);
+            color: #00ff64;
+            border: 1px solid #00ff64;
+        }
+
+        .role-seer {
+            background: rgba(180, 0, 255, 0.2);
+            color: #b400ff;
+            border: 1px solid #b400ff;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 10px 0;
+            margin-bottom: 15px;
+        }
+
+        .phase-indicator {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .countdown {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            padding: 5px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+
+        .countdown-urgent {
+            color: var(--secondary-color);
+        }
+
+        .chat-container {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 10px;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .chat-messages {
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .chat-message {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .chat-input-area button {
+            width: auto;
+            padding: 12px 20px;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
+
+        .toast {
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .toast.error {
+            border-color: var(--secondary-color);
+        }
+
+        .night-mode {
+            background: #000 !important;
+        }
+
+        .night-mode .container {
+            background: rgba(50, 0, 0, 0.3);
+        }
+
+        .vote-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .vote-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .vote-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+        }
+
+        .vote-card.is-dead {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 20px rgba(0, 212, 255, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(0, 212, 255, 0);
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- ANA EKRAN -->
+        <div id="screen-home" class="screen active">
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ</h1>
+
+            <div class="form-section">
+                <input type="text" id="username-input" placeholder="Kullanıcı Adın">
+
+                <button class="btn btn-primary" onclick="showCreateRoom()">🏠 Oda Kur</button>
+                <button class="btn btn-secondary" onclick="showJoinRoom()">🚪 Odaya Katıl</button>
+            </div>
+
+            <!-- Oda Kurma -->
+            <div id="create-form" class="form-section hidden">
+                <h3 style="margin-bottom: 15px;">Oda Oluştur</h3>
+                <input type="text" id="room-name-input" placeholder="Oda İsmi">
+                <input type="number" id="vampire-count-input" value="1" min="1" max="3" placeholder="Vampir Sayısı">
+                <input type="number" id="duration-input" value="60" min="30" max="180"
+                    placeholder="Tartışma Süresi (sn)">
+                <button class="btn btn-action" onclick="createRoom()">Oluştur</button>
+                <button class="btn btn-text" onclick="hideCreateRoom()">İptal</button>
+            </div>
+
+            <!-- Odaya Katılma -->
+            <div id="join-form" class="form-section hidden">
+                <h3 style="margin-bottom: 15px;">Odaya Katıl</h3>
+                <input type="text" id="room-code-input" placeholder="Oda Kodu">
+                <button class="btn btn-action" onclick="joinRoom()">Katıl</button>
+                <button class="btn btn-text" onclick="hideJoinRoom()">İptal</button>
+            </div>
+        </div>
+
+        <!-- LOBİ EKRANI -->
+        <div id="screen-lobby" class="screen">
+            <h2 style="text-align: center; margin-bottom: 10px;" id="lobby-title">Lobi</h2>
+            <p style="text-align: center; margin-bottom: 20px;">
+                Oda Kodu: <strong id="room-code-display" style="color: var(--primary-color);"></strong>
+                <button onclick="copyRoomCode()"
+                    style="background: none; border: none; color: var(--primary-color); cursor: pointer; font-size: 1rem;">📋</button>
+            </p>
+
+            <div class="players-list" id="lobby-players"></div>
+
+            <div id="host-controls" class="hidden" style="width: 100%;">
+                <button class="btn btn-primary pulse" onclick="startGame()">🎮 Oyunu Başlat</button>
+            </div>
+
+            <button class="btn btn-text" onclick="leaveLobby()">← Çık</button>
+
+            <!-- Lobi Sohbet -->
+            <div class="chat-container">
+                <h4 style="margin-bottom: 10px;">💬 Sohbet</h4>
+                <div id="lobby-chat" class="chat-messages"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="lobby-chat-input" placeholder="Mesaj yaz..."
+                        onkeypress="if(event.key==='Enter') sendLobbyChat()">
+                    <button class="btn btn-primary" onclick="sendLobbyChat()">➤</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- OYUN EKRANI -->
+        <div id="screen-game" class="screen">
+            <div class="game-header">
+                <div class="role-badge" id="role-badge">?</div>
+                <div class="phase-indicator" id="phase-display">Gündüz</div>
+                <div class="countdown" id="countdown">60</div>
+            </div>
+
+            <div id="game-message" style="text-align: center; margin-bottom: 15px; font-size: 1.1rem;"></div>
+
+            <div class="vote-grid" id="players-grid"></div>
+
+            <div id="night-action-panel" class="form-section hidden">
+                <h3 id="night-action-title">Gece Aksiyonu</h3>
+                <p id="night-action-desc" style="margin-bottom: 15px;"></p>
+                <div id="night-targets" class="vote-grid"></div>
+            </div>
+
+            <!-- Oyun Sohbet -->
+            <div class="chat-container">
+                <div id="game-chat" class="chat-messages"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="game-chat-input" placeholder="Mesaj yaz..."
+                        onkeypress="if(event.key==='Enter') sendGameChat()">
+                    <button class="btn btn-primary" onclick="sendGameChat()">➤</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- OYUN SONU EKRANI -->
+        <div id="screen-end" class="screen">
+            <h1 id="end-title" style="font-size: 2rem; text-align: center; margin-bottom: 20px;"></h1>
+            <p id="end-message" style="text-align: center; margin-bottom: 30px;"></p>
+            <button class="btn btn-primary" onclick="backToHome()">Ana Menüye Dön</button>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // ========== GLOBAL STATE ==========
+        let peer = null;
+        let connections = {}; // peerId -> connection
+        let isHost = false;
+        let myPeerId = null;
+        let myUsername = '';
+        let roomCode = '';
+        let hostConnection = null; // Client's connection to host
+
+        // Game State (Host only manages this)
+        let gameState = {
+            phase: 'lobby', // lobby, day, voting, night, end
+            players: {}, // peerId -> {name, role, isAlive, vote}
+            vampireCount: 1,
+            duration: 60,
+            roomName: '',
+            nightActions: {},
+            countdown: 60
+        };
+
+        let countdownInterval = null;
+
+        // ========== UTILITIES ==========
+        function showScreen(name) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen-' + name).classList.add('active');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 4; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        function copyRoomCode() {
+            navigator.clipboard.writeText(roomCode);
+            showToast('Oda kodu kopyalandı!');
+        }
+
+        // ========== UI FUNCTIONS ==========
+        function showCreateRoom() {
+            document.getElementById('create-form').classList.remove('hidden');
+            document.getElementById('join-form').classList.add('hidden');
+        }
+        function hideCreateRoom() {
+            document.getElementById('create-form').classList.add('hidden');
+        }
+        function showJoinRoom() {
+            document.getElementById('join-form').classList.remove('hidden');
+            document.getElementById('create-form').classList.add('hidden');
+        }
+        function hideJoinRoom() {
+            document.getElementById('join-form').classList.add('hidden');
+        }
+
+        // ========== PEER CONNECTION ==========
+        function initPeer(id = null) {
+            return new Promise((resolve, reject) => {
+                peer = id ? new Peer(id) : new Peer();
+
+                peer.on('open', (peerId) => {
+                    myPeerId = peerId;
+                    console.log('Peer ID:', peerId);
+                    resolve(peerId);
+                });
+
+                peer.on('connection', (conn) => {
+                    handleNewConnection(conn);
+                });
+
+                peer.on('error', (err) => {
+                    console.error('Peer error:', err);
+                    if (err.type === 'unavailable-id') {
+                        showToast('Bu oda kodu zaten kullanımda!', 'error');
+                    } else if (err.type === 'peer-unavailable') {
+                        showToast('Oda bulunamadı!', 'error');
+                    }
+                    reject(err);
+                });
+            });
+        }
+
+        function handleNewConnection(conn) {
+            conn.on('open', () => {
+                connections[conn.peer] = conn;
+                console.log('New connection:', conn.peer);
+
+                conn.on('data', (data) => handleMessage(conn.peer, data));
+                conn.on('close', () => handleDisconnect(conn.peer));
+            });
+        }
+
+        function handleDisconnect(peerId) {
+            delete connections[peerId];
+            if (isHost && gameState.players[peerId]) {
+                delete gameState.players[peerId];
+                broadcastState();
+            }
+        }
+
+        function broadcast(data) {
+            Object.values(connections).forEach(conn => {
+                if (conn.open) conn.send(data);
+            });
+        }
+
+        function sendToHost(data) {
+            if (hostConnection && hostConnection.open) {
+                hostConnection.send(data);
+            }
+        }
+
+        // ========== MESSAGE HANDLING ==========
+        function handleMessage(fromPeerId, data) {
+            console.log('Message from', fromPeerId, ':', data);
+
+            switch (data.type) {
+                case 'join':
+                    if (isHost) {
+                        gameState.players[fromPeerId] = {
+                            name: data.username,
+                            role: null,
+                            isAlive: true,
+                            vote: null
+                        };
+                        broadcastState();
+                    }
+                    break;
+
+                case 'state':
+                    // Client receiving state from host
+                    gameState = data.state;
+                    updateUI();
+                    break;
+
+                case 'chat':
+                    addChatMessage(data.sender, data.message, data.chatType);
+                    if (isHost) {
+                        // Relay to others
+                        broadcast({ type: 'chat', sender: data.sender, message: data.message, chatType: data.chatType });
+                    }
+                    break;
+
+                case 'vote':
+                    if (isHost) {
+                        gameState.players[fromPeerId].vote = data.target;
+                        checkAllVoted();
+                    }
+                    break;
+
+                case 'night_action':
+                    if (isHost) {
+                        gameState.nightActions[fromPeerId] = { action: data.action, target: data.target };
+                        checkAllNightActions();
+                    }
+                    break;
+
+                case 'game_start':
+                    showScreen('game');
+                    break;
+
+                case 'game_end':
+                    showEndScreen(data.winner, data.message);
+                    break;
+            }
+        }
+
+        function broadcastState() {
+            broadcast({ type: 'state', state: gameState });
+            updateUI();
+        }
+
+        // ========== ROOM MANAGEMENT ==========
+        async function createRoom() {
+            myUsername = document.getElementById('username-input').value.trim();
+            if (!myUsername) {
+                showToast('Kullanıcı adı gir!', 'error');
+                return;
+            }
+
+            roomCode = generateRoomCode();
+            gameState.roomName = document.getElementById('room-name-input').value || 'Oda ' + roomCode;
+            gameState.vampireCount = parseInt(document.getElementById('vampire-count-input').value) || 1;
+            gameState.duration = parseInt(document.getElementById('duration-input').value) || 60;
+
+            try {
+                await initPeer(roomCode);
+                isHost = true;
+
+                gameState.players[myPeerId] = {
+                    name: myUsername,
+                    role: null,
+                    isAlive: true,
+                    vote: null
+                };
+
+                document.getElementById('room-code-display').innerText = roomCode;
+                document.getElementById('lobby-title').innerText = gameState.roomName;
+                document.getElementById('host-controls').classList.remove('hidden');
+
+                showScreen('lobby');
+                updateLobbyPlayers();
+                showToast('Oda kuruldu! Kod: ' + roomCode);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function joinRoom() {
+            myUsername = document.getElementById('username-input').value.trim();
+            roomCode = document.getElementById('room-code-input').value.trim().toUpperCase();
+
+            if (!myUsername) {
+                showToast('Kullanıcı adı gir!', 'error');
+                return;
+            }
+            if (!roomCode) {
+                showToast('Oda kodu gir!', 'error');
+                return;
+            }
+
+            try {
+                await initPeer();
+
+                hostConnection = peer.connect(roomCode);
+
+                hostConnection.on('open', () => {
+                    connections[roomCode] = hostConnection;
+                    hostConnection.send({ type: 'join', username: myUsername });
+
+                    hostConnection.on('data', (data) => handleMessage(roomCode, data));
+
+                    document.getElementById('room-code-display').innerText = roomCode;
+                    showScreen('lobby');
+                    showToast('Odaya katıldın!');
+                });
+
+                hostConnection.on('error', (err) => {
+                    showToast('Bağlantı hatası!', 'error');
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function leaveLobby() {
+            if (peer) peer.destroy();
+            peer = null;
+            connections = {};
+            hostConnection = null;
+            isHost = false;
+            gameState = { phase: 'lobby', players: {}, vampireCount: 1, duration: 60, roomName: '', nightActions: {}, countdown: 60 };
+            showScreen('home');
+        }
+
+        // ========== UI UPDATES ==========
+        function updateUI() {
+            updateLobbyPlayers();
+            updateGameScreen();
+        }
+
+        function updateLobbyPlayers() {
+            const container = document.getElementById('lobby-players');
+            container.innerHTML = '';
+
+            Object.entries(gameState.players).forEach(([peerId, player]) => {
+                const div = document.createElement('div');
+                div.className = 'player-card';
+                div.innerHTML = `
+                    <div class="player-avatar">${player.name[0].toUpperCase()}</div>
+                    <div>${player.name}</div>
+                    ${peerId === roomCode ? '<small>(Host)</small>' : ''}
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('lobby-title').innerText = gameState.roomName || 'Lobi';
+        }
+
+        function updateGameScreen() {
+            if (gameState.phase === 'lobby') return;
+
+            const myPlayer = gameState.players[myPeerId];
+            if (!myPlayer) return;
+
+            // Role badge
+            const badge = document.getElementById('role-badge');
+            const roleNames = {
+                vampire: '🧛 VAMPİR',
+                villager: '👨‍🌾 KÖYLÜ',
+                doctor: '💉 DOKTOR',
+                seer: '🔮 MEDYUM'
+            };
+            badge.innerText = roleNames[myPlayer.role] || '?';
+            badge.className = 'role-badge role-' + myPlayer.role;
+
+            // Phase display
+            const phaseDisplay = document.getElementById('phase-display');
+            const phases = { day: '☀️ GÜNDÜZ', voting: '🗳️ OYLAMA', night: '🌙 GECE' };
+            phaseDisplay.innerText = phases[gameState.phase] || gameState.phase;
+
+            // Night mode
+            document.body.classList.toggle('night-mode', gameState.phase === 'night');
+
+            // Players grid
+            updatePlayersGrid();
+
+            // Night action panel
+            if (gameState.phase === 'night' && myPlayer.isAlive) {
+                showNightActionPanel();
+            } else {
+                document.getElementById('night-action-panel').classList.add('hidden');
+            }
+
+            // Countdown
+            document.getElementById('countdown').innerText = gameState.countdown;
+        }
+
+        function updatePlayersGrid() {
+            const grid = document.getElementById('players-grid');
+            grid.innerHTML = '';
+
+            const myPlayer = gameState.players[myPeerId];
+            const showVoteButtons = gameState.phase === 'voting' && myPlayer && myPlayer.isAlive;
+
+            Object.entries(gameState.players).forEach(([peerId, player]) => {
+                const div = document.createElement('div');
+                div.className = 'vote-card' + (player.isAlive ? '' : ' is-dead');
+                div.innerHTML = `
+                    <div class="player-avatar" style="${!player.isAlive ? 'opacity: 0.3;' : ''}">${player.name[0].toUpperCase()}</div>
+                    <div>${player.name}</div>
+                    ${!player.isAlive ? '<small>💀 Öldü</small>' : ''}
+                `;
+
+                if (showVoteButtons && player.isAlive && peerId !== myPeerId) {
+                    div.onclick = () => castVote(peerId);
+                }
+
+                grid.appendChild(div);
+            });
+        }
+
+        function showNightActionPanel() {
+            const myPlayer = gameState.players[myPeerId];
+            const panel = document.getElementById('night-action-panel');
+            const title = document.getElementById('night-action-title');
+            const desc = document.getElementById('night-action-desc');
+            const targets = document.getElementById('night-targets');
+
+            let action = null;
+
+            if (myPlayer.role === 'vampire') {
+                action = 'kill';
+                title.innerText = '🧛 AV ZAMANI';
+                desc.innerText = 'Kimi öldüreceksin?';
+            } else if (myPlayer.role === 'doctor') {
+                action = 'protect';
+                title.innerText = '💉 KORUMA';
+                desc.innerText = 'Kimi koruyacaksın?';
+            } else if (myPlayer.role === 'seer') {
+                action = 'inspect';
+                title.innerText = '🔮 KEHANET';
+                desc.innerText = 'Kimi sorgulayacaksın?';
+            }
+
+            if (!action) {
+                panel.classList.add('hidden');
+                return;
+            }
+
+            panel.classList.remove('hidden');
+            targets.innerHTML = '';
+
+            Object.entries(gameState.players).forEach(([peerId, player]) => {
+                if (!player.isAlive || peerId === myPeerId) return;
+
+                const btn = document.createElement('div');
+                btn.className = 'vote-card';
+                btn.innerHTML = `<div class="player-avatar">${player.name[0]}</div><div>${player.name}</div>`;
+                btn.onclick = () => performNightAction(action, peerId);
+                targets.appendChild(btn);
+            });
+        }
+
+        // ========== GAME LOGIC (HOST ONLY) ==========
+        function startGame() {
+            if (!isHost) return;
+
+            const playerIds = Object.keys(gameState.players);
+            const playerCount = playerIds.length;
+
+            if (playerCount < gameState.vampireCount + 2) {
+                showToast('Yeterli oyuncu yok! En az ' + (gameState.vampireCount + 2) + ' kişi olmalı.', 'error');
+                return;
+            }
+
+            // Assign roles
+            const roles = [];
+            for (let i = 0; i < gameState.vampireCount; i++) roles.push('vampire');
+            if (playerCount > 3) roles.push('doctor');
+            if (playerCount > 4) roles.push('seer');
+            while (roles.length < playerCount) roles.push('villager');
+
+            // Shuffle
+            for (let i = roles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [roles[i], roles[j]] = [roles[j], roles[i]];
+            }
+
+            playerIds.forEach((id, index) => {
+                gameState.players[id].role = roles[index];
+                gameState.players[id].isAlive = true;
+                gameState.players[id].vote = null;
+            });
+
+            broadcast({ type: 'game_start' });
+            showScreen('game');
+            startDayPhase();
+        }
+
+        function startDayPhase() {
+            gameState.phase = 'day';
+            gameState.countdown = gameState.duration;
+
+            document.getElementById('game-message').innerText = '☀️ Gündüz vakti! Tartışın...';
+
+            broadcastState();
+            startCountdown(() => startVotingPhase());
+        }
+
+        function startVotingPhase() {
+            gameState.phase = 'voting';
+            Object.values(gameState.players).forEach(p => p.vote = null);
+
+            document.getElementById('game-message').innerText = '🗳️ Oylama başladı! Şüpheliyi seç.';
+
+            broadcastState();
+        }
+
+        function startNightPhase() {
+            gameState.phase = 'night';
+            gameState.nightActions = {};
+            gameState.countdown = 30;
+
+            document.getElementById('game-message').innerText = '🌙 Gece çöktü...';
+
+            broadcastState();
+            startCountdown(() => resolveNight());
+        }
+
+        function startCountdown(callback) {
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            countdownInterval = setInterval(() => {
+                gameState.countdown--;
+                document.getElementById('countdown').innerText = gameState.countdown;
+                document.getElementById('countdown').classList.toggle('countdown-urgent', gameState.countdown <= 10);
+
+                if (gameState.countdown <= 0) {
+                    clearInterval(countdownInterval);
+                    if (callback) callback();
+                }
+            }, 1000);
+        }
+
+        function castVote(targetId) {
+            if (isHost) {
+                gameState.players[myPeerId].vote = targetId;
+                checkAllVoted();
+            } else {
+                sendToHost({ type: 'vote', target: targetId });
+            }
+            showToast('Oy kullanıldı!');
+            document.querySelectorAll('.vote-card').forEach(c => c.onclick = null);
+        }
+
+        function checkAllVoted() {
+            const alivePlayers = Object.entries(gameState.players).filter(([_, p]) => p.isAlive);
+            const votedPlayers = alivePlayers.filter(([_, p]) => p.vote !== null);
+
+            if (votedPlayers.length >= alivePlayers.length) {
+                resolveVotes();
+            }
+        }
+
+        function resolveVotes() {
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            const votes = {};
+            Object.values(gameState.players).forEach(p => {
+                if (p.isAlive && p.vote) {
+                    votes[p.vote] = (votes[p.vote] || 0) + 1;
+                }
+            });
+
+            let maxVotes = 0;
+            let victims = [];
+            Object.entries(votes).forEach(([id, count]) => {
+                if (count > maxVotes) {
+                    maxVotes = count;
+                    victims = [id];
+                } else if (count === maxVotes) {
+                    victims.push(id);
+                }
+            });
+
+            if (victims.length === 1) {
+                const victim = gameState.players[victims[0]];
+                victim.isAlive = false;
+                document.getElementById('game-message').innerText = `⚰️ ${victim.name} asıldı! Rolü: ${victim.role}`;
+            } else {
+                document.getElementById('game-message').innerText = '⚖️ Oylar eşit! Kimse asılmadı.';
+            }
+
+            broadcastState();
+
+            if (!checkWinCondition()) {
+                setTimeout(() => startNightPhase(), 3000);
+            }
+        }
+
+        function performNightAction(action, targetId) {
+            if (isHost) {
+                gameState.nightActions[myPeerId] = { action, target: targetId };
+
+                if (action === 'inspect') {
+                    const targetRole = gameState.players[targetId].role;
+                    showToast('Sonuç: ' + (targetRole === 'vampire' ? '🧛 VAMPİR!' : '✅ Temiz'), 'info');
+                }
+
+                checkAllNightActions();
+            } else {
+                sendToHost({ type: 'night_action', action, target: targetId });
+            }
+
+            document.getElementById('night-action-panel').classList.add('hidden');
+            showToast('Aksiyon yapıldı!');
+        }
+
+        function checkAllNightActions() {
+            const specialRoles = Object.entries(gameState.players)
+                .filter(([_, p]) => p.isAlive && ['vampire', 'doctor', 'seer'].includes(p.role));
+
+            const actions = Object.keys(gameState.nightActions);
+
+            if (actions.length >= specialRoles.length) {
+                setTimeout(() => resolveNight(), 1000);
+            }
+        }
+
+        function resolveNight() {
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            let kills = [];
+            let protects = [];
+
+            Object.entries(gameState.nightActions).forEach(([playerId, action]) => {
+                if (action.action === 'kill') kills.push(action.target);
+                if (action.action === 'protect') protects.push(action.target);
+            });
+
+            let message = '☀️ Gece olaysız geçti.';
+
+            if (kills.length > 0) {
+                const target = kills[0];
+                if (protects.includes(target)) {
+                    message = '💉 Doktor bir hayat kurtardı!';
+                } else {
+                    gameState.players[target].isAlive = false;
+                    message = `💀 ${gameState.players[target].name} ölü bulundu!`;
+                }
+            }
+
+            document.getElementById('game-message').innerText = message;
+            broadcastState();
+
+            if (!checkWinCondition()) {
+                setTimeout(() => startDayPhase(), 3000);
+            }
+        }
+
+        function checkWinCondition() {
+            const alive = Object.values(gameState.players).filter(p => p.isAlive);
+            const vampires = alive.filter(p => p.role === 'vampire');
+            const villagers = alive.filter(p => p.role !== 'vampire');
+
+            if (vampires.length === 0) {
+                endGame('villagers', '🎉 Tüm vampirler öldü! Köylüler kazandı!');
+                return true;
+            }
+            if (vampires.length >= villagers.length) {
+                endGame('vampires', '🧛 Vampirler köyü ele geçirdi!');
+                return true;
+            }
+            return false;
+        }
+
+        function endGame(winner, message) {
+            gameState.phase = 'end';
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            broadcast({ type: 'game_end', winner, message });
+            showEndScreen(winner, message);
+        }
+
+        function showEndScreen(winner, message) {
+            document.getElementById('end-title').innerText = winner === 'vampires' ? '🧛 VAMPİRLER KAZANDI!' : '🎉 KÖYLÜLER KAZANDI!';
+            document.getElementById('end-message').innerText = message;
+            showScreen('end');
+        }
+
+        function backToHome() {
+            leaveLobby();
+        }
+
+        // ========== CHAT ==========
+        function sendLobbyChat() {
+            const input = document.getElementById('lobby-chat-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            const data = { type: 'chat', sender: myUsername, message: msg, chatType: 'lobby' };
+
+            if (isHost) {
+                addChatMessage(myUsername, msg, 'lobby');
+                broadcast(data);
+            } else {
+                sendToHost(data);
+            }
+
+            input.value = '';
+        }
+
+        function sendGameChat() {
+            const input = document.getElementById('game-chat-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            const data = { type: 'chat', sender: myUsername, message: msg, chatType: 'game' };
+
+            if (isHost) {
+                addChatMessage(myUsername, msg, 'game');
+                broadcast(data);
+            } else {
+                sendToHost(data);
+            }
+
+            input.value = '';
+        }
+
+        function addChatMessage(sender, message, chatType) {
+            const containerId = chatType === 'lobby' ? 'lobby-chat' : 'game-chat';
+            const container = document.getElementById(containerId);
+
+            const div = document.createElement('div');
+            div.className = 'chat-message';
+            div.innerHTML = `<strong style="color: var(--primary-color);">${sender}:</strong> ${message}`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+    </script>
+</body>
+
+</html>
