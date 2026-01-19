@@ -835,6 +835,11 @@
                     if (isHost) broadcast(data);
                     break;
 
+                case 'notification':
+                    showToast(data.message, data.urgency === 'high' ? 'error' : 'info');
+                    if (data.urgency === 'high' && navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                    break;
+
                 case 'vote':
                     if (isHost) {
                         gameState.players[fromPeerId].vote = data.target;
@@ -997,8 +1002,11 @@
 
         function startVotingPhase() {
             gameState.phase = 'voting';
+            gameState.countdown = 30;
             Object.values(gameState.players).forEach(p => p.vote = null);
             broadcastState();
+            broadcast({ type: 'notification', message: '⚠️ OYLAMA BAŞLADI! 30 saniyeniz var!', urgency: 'high' });
+            startCountdown(() => resolveVotes());
         }
 
         function startNightPhase() {
@@ -1011,13 +1019,22 @@
 
         function startCountdown(cb) {
             if (countdownInterval) clearInterval(countdownInterval);
+
+            // Initial sync
+            broadcastState();
+
             countdownInterval = setInterval(() => {
                 gameState.countdown--;
+
                 if (isHost) {
-                    // Host sends updates implicitly via periodic broadcast or just handles phase change
-                    // Ideally broadcast time sync occasionally. For P2P simplicity, we trust Host triggers next phase.
-                    // Updating UI locally for host
                     document.getElementById('countdown').innerText = gameState.countdown;
+                    // Broadcast every second for better sync in P2P
+                    broadcastState();
+
+                    // Warning near end
+                    if (gameState.countdown === 10) {
+                        broadcast({ type: 'notification', message: '⏳ Son 10 Saniye!', urgency: 'medium' });
+                    }
                 }
 
                 if (gameState.countdown <= 0) {
@@ -1025,10 +1042,6 @@
                     if (cb) cb();
                 }
             }, 1000);
-
-            // Sync time for clients done via state updates or local assumption?
-            // Better to broadcast state regularly
-            if (gameState.countdown % 5 === 0) broadcastState();
         }
 
         function castVote(targetId) {
