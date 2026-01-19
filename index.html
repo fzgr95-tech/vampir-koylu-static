@@ -485,14 +485,6 @@
                 </div>
             </div>
 
-            <!-- Aktif Odalar Listesi -->
-            <div id="room-list-container" class="form-section" style="margin-top: 20px;">
-                <h3 style="margin-bottom: 10px; font-size: 1.1rem;">🔥 Aktif Odalar</h3>
-                <div id="active-rooms-list" style="max-height: 200px; overflow-y: auto;">
-                    <p style="color: rgba(255,255,255,0.5); font-size: 0.9rem;">Oda aranıyor...</p>
-                </div>
-            </div>
-
             <!-- Oda Kurma -->
             <div id="create-form" class="form-section hidden">
                 <h3 style="margin-bottom: 15px;">Oda Oluştur</h3>
@@ -509,7 +501,7 @@
             <div id="join-form" class="form-section hidden">
                 <h3 style="margin-bottom: 15px;">Odaya Katıl</h3>
                 <input type="text" id="room-code-input" placeholder="Oda Kodu">
-                <input type="password" id="join-password-input" placeholder="Şifre">
+                <input type="password" id="join-password-input" placeholder="Şifre (Varsa)">
                 <button class="btn btn-action" onclick="joinRoom()">Katıl</button>
                 <button class="btn btn-text" onclick="hideJoinRoom()">İptal</button>
             </div>
@@ -612,9 +604,8 @@
         // Lobby System
         let lobbyConnection = null;
         let isLobbyManager = false;
+        // Günlük ID değişimi basit çözüm (Herkes aynı gün aynı lobiye düşecek)
         const LOBBY_ID = 'vampir-koylu-master-lobby-' + new Date().getDate();
-
-
 
         let gameState = {
             phase: 'lobby',
@@ -661,12 +652,18 @@
         }
 
         // ========== PEER CONNECTION ==========
+        async function initApp() {
+            await initPeer();
+            connectToLobby();
+        }
+
         function initPeer(id = null) {
             return new Promise((resolve, reject) => {
                 peer = id ? new Peer(id) : new Peer();
 
                 peer.on('open', (peerId) => {
                     myPeerId = peerId;
+                    console.log('My ID:', peerId);
                     resolve(peerId);
                 });
 
@@ -675,13 +672,101 @@
                 });
 
                 peer.on('error', (err) => {
+                    console.log('Peer error:', err.type);
                     if (err.type === 'unavailable-id') {
-                        showToast('Bu oda kodu zaten kullanımda!', 'error');
-                    } else {
-                        showToast('Bağlantı hatası: ' + err.type, 'error');
+                        if (id === LOBBY_ID) connectToLobby();
+                        else showToast('Bu oda kodu kullanımda!', 'error');
                     }
-                    reject(err);
+                    // reject(err); 
                 });
+            });
+        }
+
+        // LOBBY LOGIC
+        function connectToLobby() {
+            if (myPeerId === LOBBY_ID) return;
+
+            const conn = peer.connect(LOBBY_ID);
+
+            conn.on('open', () => {
+                console.log('Connected to Lobby');
+                lobbyConnection = conn;
+                conn.send({ type: 'get_rooms' });
+                conn.on('data', (data) => {
+                    if (data.type === 'room_list') updateRoomListUI(data.rooms);
+                });
+            });
+
+            conn.on('error', () => {
+                becomeLobbyManager();
+            });
+
+            setTimeout(() => {
+                if (!lobbyConnection && !isLobbyManager) becomeLobbyManager();
+            }, 3000);
+        }
+
+        async function becomeLobbyManager() {
+            if (isLobbyManager) return;
+            if (peer) peer.destroy();
+
+            try {
+                await initPeer(LOBBY_ID);
+                isLobbyManager = true;
+                console.log('I am Lobby Manager');
+                showToast('Lobi Yöneticisi Oldun!', 'info');
+                updateRoomListUI(knownRooms);
+            } catch (e) {
+                initPeer();
+                setTimeout(connectToLobby, 2000);
+            }
+        }
+
+        let knownRooms = {};
+
+        function handleLobbyMessage(conn, data) {
+            if (data.type === 'register_room') {
+                knownRooms[data.code] = data.info;
+                broadcastRooms();
+            } else if (data.type === 'get_rooms') {
+                conn.send({ type: 'room_list', rooms: knownRooms });
+            }
+        }
+
+        function broadcastRooms() {
+            Object.values(connections).forEach(c => {
+                if (c.open) c.send({ type: 'room_list', rooms: knownRooms });
+            });
+        }
+
+        function updateRoomListUI(rooms) {
+            const list = document.getElementById('active-rooms-list');
+            list.innerHTML = '';
+
+            const roomKeys = Object.keys(rooms);
+            if (roomKeys.length === 0) {
+                list.innerHTML = '<p style="opacity:0.6;font-size:0.9rem;">Aktif oda yok.</p>';
+                return;
+            }
+
+            roomKeys.forEach(code => {
+                const r = rooms[code];
+                const div = document.createElement('div');
+                div.style.background = 'rgba(255,255,255,0.1)';
+                div.style.padding = '10px';
+                div.style.borderRadius = '8px';
+                div.style.marginBottom = '5px';
+                div.style.display = 'flex';
+                div.style.justifyContent = 'space-between';
+                div.style.alignItems = 'center';
+                div.style.cursor = 'pointer';
+                div.onclick = () => {
+                    document.getElementById('room-code-input').value = code;
+                    showJoinRoom();
+                };
+
+                div.innerHTML = `<div><strong>${r.name}</strong> ${r.locked ? '🔒' : ''}<br><small style="color:#aaa">${code}</small></div>`;
+                list.appendChild(div);
             });
         }
 
@@ -810,9 +895,25 @@
             gameState.duration = parseInt(document.getElementById('duration-input').value);
 
             try {
+                // If I was manager, stop being manager
+                if (isLobbyManager) {
+                    isLobbyManager = false;
+                    if (peer) peer.destroy();
+                }
+
                 await initPeer(roomCode);
                 isHost = true;
                 gameState.players[myPeerId] = { name: myUsername, role: null, isAlive: true, vote: null };
+
+                // Register to Lobby
+                const conn = peer.connect(LOBBY_ID);
+                conn.on('open', () => {
+                    conn.send({
+                        type: 'register_room',
+                        code: roomCode,
+                        info: { name: gameState.roomName, locked: !!gameState.password }
+                    });
+                });
 
                 document.getElementById('room-code-display').innerText = roomCode;
                 document.getElementById('lobby-title').innerText = gameState.roomName;
@@ -834,9 +935,11 @@
             try {
                 await initPeer();
                 hostConnection = peer.connect(roomCode);
+
                 hostConnection.on('open', () => {
                     connections[roomCode] = hostConnection;
                     hostConnection.send({ type: 'join', username: myUsername, password: password });
+
                     hostConnection.on('data', d => handleMessage(roomCode, d));
                     document.getElementById('room-code-display').innerText = roomCode;
                     showScreen('lobby');
