@@ -481,6 +481,7 @@
             <div id="create-form" class="form-section hidden">
                 <h3 style="margin-bottom: 15px;">Oda Oluştur</h3>
                 <input type="text" id="room-name-input" placeholder="Oda İsmi">
+                <input type="password" id="room-password-input" placeholder="Şifre (İsteğe Bağlı)">
                 <input type="number" id="vampire-count-input" value="1" min="1" max="3" placeholder="Vampir Sayısı">
                 <input type="number" id="duration-input" value="60" min="30" max="180"
                     placeholder="Tartışma Süresi (sn)">
@@ -492,6 +493,7 @@
             <div id="join-form" class="form-section hidden">
                 <h3 style="margin-bottom: 15px;">Odaya Katıl</h3>
                 <input type="text" id="room-code-input" placeholder="Oda Kodu">
+                <input type="password" id="join-password-input" placeholder="Şifre">
                 <button class="btn btn-action" onclick="joinRoom()">Katıl</button>
                 <button class="btn btn-text" onclick="hideJoinRoom()">İptal</button>
             </div>
@@ -597,6 +599,7 @@
             vampireCount: 1,
             duration: 60,
             roomName: '',
+            password: '',
             nightActions: {},
             countdown: 60,
             chaosEvent: null,
@@ -691,6 +694,16 @@
             switch (data.type) {
                 case 'join':
                     if (isHost) {
+                        // Şifre Kontrolü
+                        if (gameState.password && gameState.password !== data.password) {
+                            const conn = connections[fromPeerId];
+                            if (conn) {
+                                conn.send({ type: 'chat', sender: 'SİSTEM', message: 'Hatalı Şifre! Bağlantı kesiliyor...', chatType: 'lobby' });
+                                setTimeout(() => conn.close(), 1000);
+                            }
+                            return;
+                        }
+
                         gameState.players[fromPeerId] = {
                             name: data.username,
                             role: null,
@@ -766,6 +779,7 @@
 
             roomCode = generateRoomCode();
             gameState.roomName = document.getElementById('room-name-input').value || 'Oda ' + roomCode;
+            gameState.password = document.getElementById('room-password-input').value.trim();
             gameState.vampireCount = parseInt(document.getElementById('vampire-count-input').value);
             gameState.duration = parseInt(document.getElementById('duration-input').value);
 
@@ -787,6 +801,8 @@
         async function joinRoom() {
             myUsername = document.getElementById('username-input').value.trim();
             roomCode = document.getElementById('room-code-input').value.trim().toUpperCase();
+            const password = document.getElementById('join-password-input').value.trim();
+
             if (!myUsername || !roomCode) return showToast('Bilgileri gir!', 'error');
 
             try {
@@ -794,7 +810,7 @@
                 hostConnection = peer.connect(roomCode);
                 hostConnection.on('open', () => {
                     connections[roomCode] = hostConnection;
-                    hostConnection.send({ type: 'join', username: myUsername });
+                    hostConnection.send({ type: 'join', username: myUsername, password: password });
                     hostConnection.on('data', d => handleMessage(roomCode, d));
                     document.getElementById('room-code-display').innerText = roomCode;
                     showScreen('lobby');
