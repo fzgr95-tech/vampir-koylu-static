@@ -1021,13 +1021,16 @@
             if (countdownInterval) clearInterval(countdownInterval);
 
             // Initial sync
-            broadcastState();
+            if (isHost) broadcastState();
 
             countdownInterval = setInterval(() => {
                 gameState.countdown--;
 
+                // UPDATE UI FOR EVERYONE (Client-side prediction)
+                const cdEl = document.getElementById('countdown');
+                if (cdEl) cdEl.innerText = gameState.countdown;
+
                 if (isHost) {
-                    document.getElementById('countdown').innerText = gameState.countdown;
                     // Broadcast every second for better sync in P2P
                     broadcastState();
 
