@@ -507,9 +507,21 @@
                         <input type="checkbox" id="role-seer" checked style="width: auto;">
                         <span>🔮 Medyum (Geceleri sorgular)</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;">
                         <input type="checkbox" id="role-traitor" style="width: auto;">
                         <span>🐀 Köstebek (Vampirlerle çalışır)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;">
+                        <input type="checkbox" id="role-hunter" style="width: auto;">
+                        <span>🏹 Avcı (Ölürken birini götürür)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;">
+                        <input type="checkbox" id="role-witch" style="width: auto;">
+                        <span>✨ Büyücü (1x kurtarma + 1x zehir)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="role-sheriff" style="width: auto;">
+                        <span>⭐ Şerif (Oyu 2 sayılır)</span>
                     </label>
                 </div>
 
@@ -639,11 +651,16 @@
             countdown: 60,
             chaosEvent: null,
             duelScores: {},
+            hunterTarget: null, // Avcı ölürken hedef seçimi
+            witchPotions: { heal: true, poison: true }, // Büyücü iksirleri
             // Dinamik rol ayarları
             roles: {
                 doctor: true,
                 seer: true,
-                traitor: false
+                traitor: false,
+                hunter: false,
+                witch: false,
+                sheriff: false
             }
         };
 
@@ -896,7 +913,17 @@
                 case 'duel_click':
                     if (isHost) {
                         gameState.duelScores[fromPeerId] = (gameState.duelScores[fromPeerId] || 0) + 1;
-                        // Host logic decides winner (simplified: first to 10 or most in 5 sec)
+                    }
+                    break;
+
+                case 'hunter_revenge':
+                    if (isHost && data.target) {
+                        gameState.players[data.target].isAlive = false;
+                        const targetName = gameState.players[data.target].name;
+                        const targetRole = gameState.players[data.target].role;
+                        document.getElementById('game-message').innerText += ` 🏹 Avcı ${targetName}'i beraberinde götürdü! (${getRoleEmoji(targetRole)})`;
+                        broadcastState();
+                        if (!checkWin()) setTimeout(() => startNightPhase(), 3000);
                     }
                     break;
 
@@ -931,8 +958,14 @@
             gameState.roles = {
                 doctor: document.getElementById('role-doctor').checked,
                 seer: document.getElementById('role-seer').checked,
-                traitor: document.getElementById('role-traitor').checked
+                traitor: document.getElementById('role-traitor').checked,
+                hunter: document.getElementById('role-hunter').checked,
+                witch: document.getElementById('role-witch').checked,
+                sheriff: document.getElementById('role-sheriff').checked
             };
+
+            // Büyücü iksirlerini sıfırla
+            gameState.witchPotions = { heal: true, poison: true };
 
             try {
                 // If I was manager, stop being manager
@@ -1001,6 +1034,9 @@
             if (gameState.roles.doctor) roles.push('doctor');
             if (gameState.roles.seer) roles.push('seer');
             if (gameState.roles.traitor) roles.push('traitor');
+            if (gameState.roles.hunter) roles.push('hunter');
+            if (gameState.roles.witch) roles.push('witch');
+            if (gameState.roles.sheriff) roles.push('sheriff');
 
             // Kalan herkes köylü
             while (roles.length < pIds.length) roles.push('villager');
@@ -1110,12 +1146,16 @@
         function resolveVotes() {
             clearInterval(countdownInterval);
             const votes = {};
-            Object.values(gameState.players).forEach(p => {
-                if (p.isAlive && p.vote) votes[p.vote] = (votes[p.vote] || 0) + 1;
+
+            // Oyları say - Şerif 2x oy gücüne sahip
+            Object.entries(gameState.players).forEach(([id, p]) => {
+                if (p.isAlive && p.vote) {
+                    const voteWeight = (p.role === 'sheriff') ? 2 : 1;
+                    votes[p.vote] = (votes[p.vote] || 0) + voteWeight;
+                }
             });
 
             // Logic for max votes
-            // If chaosEvent is 'blind', show results only now
             let max = 0;
             let victims = [];
             Object.entries(votes).forEach(([id, c]) => {
@@ -1124,57 +1164,149 @@
             });
 
             let msg = '';
+            let hunterTriggered = false;
+            let hunterVictimId = null;
+
             if (victims.length === 1) {
-                const v = gameState.players[victims[0]];
+                const victimId = victims[0];
+                const v = gameState.players[victimId];
                 v.isAlive = false;
-                msg = `⚰️ ${v.name} asıldı! Rolü: ${getRoleEmoji(v.role)}`;
+                msg = `⚰️ ${v.name} asıldı! Rolü: ${getRoleEmoji(v.role)} ${v.role.toUpperCase()}`;
+
+                // Avcı öldüyse hedef seçmesi gerekiyor
+                if (v.role === 'hunter') {
+                    hunterTriggered = true;
+                    hunterVictimId = victimId;
+                }
             } else {
                 msg = '⚖️ Oylar eşit, kimse asılmadı.';
                 if (gameState.chaosEvent?.id === 'double' && victims.length === 2) {
-                    // Double trouble logic
-                    victims.forEach(id => gameState.players[id].isAlive = false);
+                    victims.forEach(id => {
+                        const v = gameState.players[id];
+                        v.isAlive = false;
+                        if (v.role === 'hunter') {
+                            hunterTriggered = true;
+                            hunterVictimId = id;
+                        }
+                    });
                     msg = `⚡ ÇİFTE BELA! ${gameState.players[victims[0]].name} ve ${gameState.players[victims[1]].name} asıldı!`;
-                }
-                else if (gameState.chaosEvent?.id === 'duel' && victims.length === 2) {
-                    // Trigger duel?
-                    // For simplicity, stick to standard double mechanic or tie = no death
                 }
             }
 
             document.getElementById('game-message').innerText = msg;
             broadcastState();
 
-            if (!checkWin()) setTimeout(() => startNightPhase(), 4000);
+            // Avcı öldüyse hedef seçtir
+            if (hunterTriggered && hunterVictimId === myPeerId) {
+                showHunterRevenge();
+            } else if (!checkWin()) {
+                setTimeout(() => startNightPhase(), 4000);
+            }
+        }
+
+        // Avcı intikamı - ölürken birini seçer
+        function showHunterRevenge() {
+            const panel = document.getElementById('night-action-panel');
+            panel.classList.remove('hidden');
+            document.getElementById('night-action-title').innerText = '🏹 AVCI İNTİKAMI';
+            document.getElementById('night-action-desc').innerText = 'Ölmeden önce birini seç!';
+
+            const targetsDiv = document.getElementById('night-targets');
+            targetsDiv.innerHTML = '';
+
+            Object.entries(gameState.players).forEach(([id, p]) => {
+                if (!p.isAlive || id === myPeerId) return;
+                const btn = document.createElement('div');
+                btn.className = 'vote-card';
+                btn.innerHTML = p.name;
+                btn.style.padding = '10px';
+                btn.onclick = () => {
+                    // Hedefi öldür
+                    if (isHost) {
+                        gameState.players[id].isAlive = false;
+                        const targetName = gameState.players[id].name;
+                        const targetRole = gameState.players[id].role;
+                        document.getElementById('game-message').innerText += ` 🏹 Avcı ${targetName}'i beraberinde götürdü! (${getRoleEmoji(targetRole)})`;
+                        broadcastState();
+                        panel.classList.add('hidden');
+                        if (!checkWin()) setTimeout(() => startNightPhase(), 3000);
+                    } else {
+                        sendToHost({ type: 'hunter_revenge', target: id });
+                        panel.classList.add('hidden');
+                    }
+                };
+                targetsDiv.appendChild(btn);
+            });
         }
 
         function resolveNight() {
             clearInterval(countdownInterval);
-            // Logic: Vampire kills, Doctor protects, Seer inspected locally
+            // Logic: Vampire kills, Doctor protects, Witch heals/poisons, Seer inspected locally
             const kills = [];
             const protects = [];
+            let witchHeal = false;
+            let witchPoison = null;
 
             Object.values(gameState.nightActions).forEach(a => {
                 if (a.action === 'kill') kills.push(a.target);
                 if (a.action === 'protect') protects.push(a.target);
+                if (a.action === 'witch_heal') witchHeal = true;
+                if (a.action === 'witch_poison') witchPoison = a.target;
             });
 
             let victim = kills[0]; // Simplification: 1 kill
             let msg = '🌙 Gece sessiz geçti.';
+            let deaths = [];
 
+            // Vampir saldırısı
             if (victim) {
+                // Doktor veya Büyücü kurtardı mı?
                 if (protects.includes(victim)) {
                     msg = '💉 Doktor müdahalesi hayat kurtardı!';
+                } else if (witchHeal) {
+                    msg = '✨ Büyücü iksiri hayat kurtardı!';
                 } else {
                     const p = gameState.players[victim];
                     p.isAlive = false;
-                    msg = `💀 ${p.name} ölü bulundu!`;
+                    deaths.push(p.name);
                 }
+            }
+
+            // Büyücü zehiri
+            if (witchPoison && gameState.players[witchPoison]) {
+                const poisoned = gameState.players[witchPoison];
+                poisoned.isAlive = false;
+                deaths.push(poisoned.name + ' (zehirlendi)');
+            }
+
+            // Mesajı oluştur
+            if (deaths.length > 0) {
+                msg = `💀 ${deaths.join(' ve ')} ölü bulundu!`;
             }
 
             document.getElementById('game-message').innerText = msg;
             broadcastState();
 
-            if (!checkWin()) setTimeout(() => startDayPhase(), 4000);
+            // Avcı gece öldürüldüyse intikam alabilir
+            let hunterDied = false;
+            let hunterVictimId = null;
+
+            // Vampir kurbanı Avcı mı kontrol et
+            if (victim && gameState.players[victim] && !gameState.players[victim].isAlive && gameState.players[victim].role === 'hunter') {
+                hunterDied = true;
+                hunterVictimId = victim;
+            }
+            // Zehirlenen Avcı mı kontrol et
+            if (witchPoison && gameState.players[witchPoison] && gameState.players[witchPoison].role === 'hunter') {
+                hunterDied = true;
+                hunterVictimId = witchPoison;
+            }
+
+            if (hunterDied && hunterVictimId === myPeerId) {
+                showHunterRevenge();
+            } else if (!checkWin()) {
+                setTimeout(() => startDayPhase(), 4000);
+            }
         }
 
         function checkWin() {
@@ -1248,37 +1380,109 @@
 
             // Night Panel
             const nightPanel = document.getElementById('night-action-panel');
-            if (gameState.phase === 'night' && me.isAlive && ['vampire', 'doctor', 'seer'].includes(me.role)) {
+            const nightRoles = ['vampire', 'doctor', 'seer', 'witch'];
+            if (gameState.phase === 'night' && me.isAlive && nightRoles.includes(me.role)) {
                 nightPanel.classList.remove('hidden');
                 document.getElementById('night-targets').innerHTML = '';
 
                 let title = '', desc = '', action = '';
-                if (me.role === 'vampire') { title = 'AV'; desc = 'Öldür'; action = 'kill'; }
-                if (me.role === 'doctor') { title = 'İLKYARDIM'; desc = 'Koru'; action = 'protect'; }
-                if (me.role === 'seer') { title = 'KEHANET'; desc = 'Sorgula'; action = 'inspect'; }
+                if (me.role === 'vampire') { title = '🧛 AV'; desc = 'Öldür'; action = 'kill'; }
+                if (me.role === 'doctor') { title = '💉 İLKYARDIM'; desc = 'Koru'; action = 'protect'; }
+                if (me.role === 'seer') { title = '🔮 KEHANET'; desc = 'Sorgula'; action = 'inspect'; }
+                if (me.role === 'witch') {
+                    title = '✨ BÜYÜCÜ';
+                    desc = gameState.witchPotions.heal ? '💚 Kurtarma veya 💀 Zehir' : (gameState.witchPotions.poison ? '💀 Zehir' : 'İksir kalmadı');
+                }
 
                 document.getElementById('night-action-title').innerText = title;
                 document.getElementById('night-action-desc').innerText = desc;
 
-                Object.entries(gameState.players).forEach(([id, p]) => {
-                    if (!p.isAlive || id === myPeerId) return; // Can't target self usually? Doctor can. 
-                    // Simplified: Doctor CAN self-protect. Vampire CAN kill partner (troll). 
-                    const btn = document.createElement('div');
-                    btn.className = 'vote-card';
-                    btn.innerHTML = p.name;
-                    btn.style.padding = '10px';
-                    btn.onclick = () => {
+                // Büyücü için özel panel
+                if (me.role === 'witch') {
+                    const targetsDiv = document.getElementById('night-targets');
+
+                    // Kurtarma iksiri (sadece varsa)
+                    if (gameState.witchPotions.heal) {
+                        const healBtn = document.createElement('button');
+                        healBtn.className = 'btn btn-secondary';
+                        healBtn.style.margin = '5px';
+                        healBtn.innerHTML = '💚 Kurtarma İksiri (Vampir kurbanını kurtar)';
+                        healBtn.onclick = () => {
+                            if (isHost) {
+                                gameState.nightActions[myPeerId] = { action: 'witch_heal', target: null };
+                                gameState.witchPotions.heal = false;
+                            } else {
+                                sendToHost({ type: 'night_action', action: 'witch_heal', target: null });
+                            }
+                            nightPanel.classList.add('hidden');
+                            showToast('💚 Kurtarma iksiri hazırlandı!');
+                        };
+                        targetsDiv.appendChild(healBtn);
+                    }
+
+                    // Zehir iksiri (hedef seç)
+                    if (gameState.witchPotions.poison) {
+                        const poisonLabel = document.createElement('p');
+                        poisonLabel.innerHTML = '<br>💀 Zehir - Hedef Seç:';
+                        poisonLabel.style.marginTop = '10px';
+                        targetsDiv.appendChild(poisonLabel);
+
+                        Object.entries(gameState.players).forEach(([id, p]) => {
+                            if (!p.isAlive || id === myPeerId) return;
+                            const btn = document.createElement('div');
+                            btn.className = 'vote-card';
+                            btn.innerHTML = p.name;
+                            btn.style.padding = '10px';
+                            btn.onclick = () => {
+                                if (isHost) {
+                                    gameState.nightActions[myPeerId] = { action: 'witch_poison', target: id };
+                                    gameState.witchPotions.poison = false;
+                                } else {
+                                    sendToHost({ type: 'night_action', action: 'witch_poison', target: id });
+                                }
+                                nightPanel.classList.add('hidden');
+                                showToast('💀 Zehir verildi!');
+                            };
+                            targetsDiv.appendChild(btn);
+                        });
+                    }
+
+                    // Pas geç butonu
+                    const skipBtn = document.createElement('button');
+                    skipBtn.className = 'btn btn-text';
+                    skipBtn.style.marginTop = '15px';
+                    skipBtn.innerHTML = 'Bu gece pas geç';
+                    skipBtn.onclick = () => {
                         if (isHost) {
-                            gameState.nightActions[myPeerId] = { action, target: id };
-                            if (action === 'inspect') showToast(`${p.name} bir ${p.role === 'vampire' || p.role === 'traitor' ? 'DÜŞMAN' : 'DOST'}`); // Traitor appears as enemy? Or Villager? Usually Seer sees Traitor.
-                            checkAllNightActions();
+                            gameState.nightActions[myPeerId] = { action: 'skip', target: null };
                         } else {
-                            sendToHost({ type: 'night_action', action, target: id });
+                            sendToHost({ type: 'night_action', action: 'skip', target: null });
                         }
                         nightPanel.classList.add('hidden');
                     };
-                    document.getElementById('night-targets').appendChild(btn);
-                });
+                    targetsDiv.appendChild(skipBtn);
+
+                } else {
+                    // Diğer gece rolleri için normal hedef listesi
+                    Object.entries(gameState.players).forEach(([id, p]) => {
+                        if (!p.isAlive || id === myPeerId) return;
+                        const btn = document.createElement('div');
+                        btn.className = 'vote-card';
+                        btn.innerHTML = p.name;
+                        btn.style.padding = '10px';
+                        btn.onclick = () => {
+                            if (isHost) {
+                                gameState.nightActions[myPeerId] = { action, target: id };
+                                if (action === 'inspect') showToast(`${p.name} bir ${p.role === 'vampire' || p.role === 'traitor' ? 'DÜŞMAN' : 'DOST'}`);
+                                checkAllNightActions();
+                            } else {
+                                sendToHost({ type: 'night_action', action, target: id });
+                            }
+                            nightPanel.classList.add('hidden');
+                        };
+                        document.getElementById('night-targets').appendChild(btn);
+                    });
+                }
             } else {
                 nightPanel.classList.add('hidden');
             }
@@ -1303,7 +1507,16 @@
         }
 
         function getRoleEmoji(role) {
-            const map = { vampire: '🧛', villager: '👨‍🌾', doctor: '💉', seer: '🔮', traitor: '🐀' };
+            const map = {
+                vampire: '🧛',
+                villager: '👨‍🌾',
+                doctor: '💉',
+                seer: '🔮',
+                traitor: '🐀',
+                hunter: '🏹',
+                witch: '✨',
+                sheriff: '⭐'
+            };
             return map[role] || '❓';
         }
 
