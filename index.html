@@ -470,7 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#aaa">v1.5 VOICE CHAT</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#aaa">v1.6 GLOBAL LOBBY</small>
             </h1>
 
             <div class="form-section">
@@ -1907,8 +1907,16 @@
 
         // ========== INIT APP & UI LISTENERS ==========
 
-        function initApp() {
-            console.log('App v1.5 with Voice Chat Ready');
+        async function initApp() {
+            console.log('App v1.6 Initializing...');
+
+            // Otomatik Peer Başlat (Lobiye bağlanmak için)
+            if (!peer) {
+                await initPeer();
+            }
+
+            // Lobiye Bağlan
+            connectToLobby();
         }
 
         function showCreateRoom() { document.getElementById('create-form').classList.remove('hidden'); document.getElementById('join-form').classList.add('hidden'); }
