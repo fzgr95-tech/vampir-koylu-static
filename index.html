@@ -470,7 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ff00">v1.8.2 (FİXED)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#d400ff">v1.9 (ROOM
+                    FIX)</small>
             </h1>
 
             <div class="form-section">
@@ -1162,14 +1163,8 @@
                 gameState.players[myPeerId] = { name: myUsername, role: null, isAlive: true, vote: null };
 
                 // Register to Lobby
-                const conn = peer.connect(LOBBY_ID);
-                conn.on('open', () => {
-                    conn.send({
-                        type: 'register_room',
-                        code: roomCode,
-                        info: { name: gameState.roomName, locked: !!gameState.password }
-                    });
-                });
+                announceRoom();
+                setInterval(announceRoom, 3000);
 
                 document.getElementById('room-code-display').innerText = roomCode;
                 document.getElementById('lobby-title').innerText = gameState.roomName;
@@ -1206,6 +1201,23 @@
             updateLobbyPlayers();
             broadcastState();
             showToast(botName + ' eklendi!');
+        }
+
+        function announceRoom() {
+            if (!isHost) return;
+            const info = {
+                host: myUsername,
+                vampires: gameState.vampireCount,
+                players: Object.keys(gameState.players).length
+            };
+
+            // Send to Lobby Manager (Specific Connection)
+            if (lobbyConnection && lobbyConnection.open) {
+                lobbyConnection.send({ type: 'register_room', code: roomCode, info: info });
+            } else {
+                // Try to reconnect or broadcast if we became manager
+                connectToLobby();
+            }
         }
 
         async function joinRoom() {
