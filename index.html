@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ffa500">v2.0.1 (UI
-                    HOTFIX)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ff00">v2.0.2 (CRITICAL
+                    FIX)</small>
             </h1>
 
             <div class="form-section">
@@ -1118,81 +1118,97 @@
 
         // ========== ROOM & GAME LOGIC ==========
         async function createRoom() {
-            myUsername = document.getElementById('username-input').value.trim();
-            if (!myUsername) return showToast('İsim gir!', 'error');
-
-            roomCode = generateRoomCode();
-            gameState.roomName = document.getElementById('room-name-input').value || 'Oda ' + roomCode;
-            gameState.password = document.getElementById('room-password-input').value.trim();
-            gameState.vampireCount = parseInt(document.getElementById('vampire-count-input').value);
-            gameState.duration = parseInt(document.getElementById('duration-input').value);
-            gameState.duration = parseInt(document.getElementById('duration-input').value);
-            gameState.voteDuration = parseInt(document.getElementById('vote-duration-input').value) || 30;
-
-            // Sesli Sohbeti yakala ve başlat
-            gameState.voiceEnabled = document.getElementById('enable-voice').checked;
-            if (gameState.voiceEnabled) initAudio();
-
-            // Rol ayarlarını kaydet
-            // ... (omitted role settings)
-
-            showToast('Oda oluşturuluyor...', 'info');
-            await initPeer();
-            if (gameState.voiceEnabled) initAudio(); // İzin iste
-
-            isHost = true;
-            gameState.roles = {
-                doctor: document.getElementById('role-doctor').checked,
-                seer: document.getElementById('role-seer').checked,
-                traitor: document.getElementById('role-traitor').checked,
-                hunter: document.getElementById('role-hunter').checked,
-                witch: document.getElementById('role-witch').checked,
-                sheriff: document.getElementById('role-sheriff').checked
-            };
-
-            // Büyücü iksirlerini sıfırla
-            gameState.witchPotions = { heal: true, poison: true };
-
-            // İttifak sistemi
-            gameState.allianceEnabled = document.getElementById('enable-alliance').checked;
-            gameState.alliances = {};
-            gameState.allianceInvites = {};
-            gameState.nextAllianceId = 1;
-
-            // Sesli Sohbet Sistemi
-            gameState.voiceEnabled = document.getElementById('enable-voice').checked;
-
             try {
-                // If I was manager, stop being manager
-                if (isLobbyManager) {
-                    isLobbyManager = false;
-                    if (peer) peer.destroy();
+                console.log('Create Room clicked');
+                myUsername = document.getElementById('username-input').value.trim();
+                if (!myUsername) return showToast('Lütfen ismini gir!', 'error');
+
+                roomCode = generateRoomCode();
+                gameState.roomName = document.getElementById('room-name-input').value || 'Oda ' + roomCode;
+                gameState.password = document.getElementById('room-password-input').value.trim();
+                gameState.vampireCount = parseInt(document.getElementById('vampire-count-input').value);
+                gameState.duration = parseInt(document.getElementById('duration-input').value);
+                gameState.voteDuration = parseInt(document.getElementById('vote-duration-input').value) || 30;
+
+                // Sesli Sohbeti yakala ve başlat
+                gameState.voiceEnabled = document.getElementById('enable-voice').checked;
+
+                showToast('Oda oluşturuluyor... Lütfen bekle.', 'info');
+
+                // Initialize Peer
+                if (!peer) await initPeer();
+
+                if (gameState.voiceEnabled) {
+                    try {
+                        await initAudio();
+                    } catch (e) {
+                        console.error('Mic failed', e);
+                        showToast('Mikrofon başlatılamadı, ama oyun açılıyor.', 'warning');
+                    }
                 }
 
-                await initPeer(roomCode);
                 isHost = true;
-                gameState.players[myPeerId] = { name: myUsername, role: null, isAlive: true, vote: null };
+                gameState.roles = {
+                    doctor: document.getElementById('role-doctor').checked,
+                    seer: document.getElementById('role-seer').checked,
+                    traitor: document.getElementById('role-traitor').checked,
+                    hunter: document.getElementById('role-hunter').checked,
+                    witch: document.getElementById('role-witch').checked,
+                    sheriff: document.getElementById('role-sheriff').checked
+                };
+
+                // Büyücü iksirlerini sıfırla
+                gameState.witchPotions = { heal: true, poison: true };
+
+                // İttifak sistemi
+                gameState.allianceEnabled = document.getElementById('enable-alliance').checked;
+                gameState.alliances = {};
+                gameState.allianceInvites = {};
+                gameState.nextAllianceId = 1;
 
                 // Register to Lobby
-                announceRoom();
-                setInterval(announceRoom, 3000);
+                try {
+                    // If I was manager, stop being manager
+                    if (isLobbyManager) {
+                        isLobbyManager = false;
+                        if (peer) peer.destroy();
+                        await initPeer(generateRoomCode()); // Re-init with new ID if needed
+                    } else if (!peer || peer.disconnected) {
+                        await initPeer();
+                    }
 
-                document.getElementById('room-code-display').innerText = roomCode;
-                document.getElementById('lobby-title').innerText = gameState.roomName;
-                document.getElementById('host-controls').classList.remove('hidden');
+                    isHost = true;
+                    gameState.players[myPeerId] = { name: myUsername, role: null, isAlive: true, vote: null };
 
-                // Add Bot Button
-                const btnBot = document.createElement('button');
-                btnBot.className = 'btn btn-secondary';
-                btnBot.innerText = '🤖 Bot Ekle';
-                btnBot.style.marginTop = '10px';
-                btnBot.onclick = addBot;
-                document.getElementById('host-controls').appendChild(btnBot);
+                    announceRoom();
+                    setInterval(announceRoom, 3000);
 
-                showScreen('lobby');
-                updateLobbyPlayers();
-                showToast('Oda kuruldu: ' + roomCode);
-            } catch (err) { console.error(err); }
+                    document.getElementById('room-code-display').innerText = roomCode;
+                    document.getElementById('lobby-title').innerText = gameState.roomName;
+                    document.getElementById('host-controls').classList.remove('hidden');
+
+                    // Add Bot Button Check
+                    if (!document.getElementById('btn-add-bot')) {
+                        const btnBot = document.createElement('button');
+                        btnBot.id = 'btn-add-bot';
+                        btnBot.className = 'btn btn-secondary';
+                        btnBot.innerText = '🤖 Bot Ekle';
+                        btnBot.style.marginTop = '10px';
+                        btnBot.onclick = addBot;
+                        document.getElementById('host-controls').appendChild(btnBot);
+                    }
+
+                    showScreen('lobby');
+                    updateLobbyPlayers();
+                    showToast('Oda kuruldu: ' + roomCode);
+                } catch (err) {
+                    console.error(err);
+                    showToast('Lobi hatası: ' + err.message, 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Oda kurma hatası: ' + e.message, 'error');
+            }
         }
 
         // ========== BOT SYSTEM ==========
