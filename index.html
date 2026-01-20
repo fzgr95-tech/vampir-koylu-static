@@ -764,12 +764,13 @@
                 });
 
                 peer.on('error', (err) => {
-                    console.log('Peer error:', err.type);
+                    console.error('Peer error:', err);
                     if (err.type === 'unavailable-id') {
-                        if (id === LOBBY_ID) connectToLobby();
-                        else showToast('Bu oda kodu kullanımda!', 'error');
+                        showToast('Bu oda kodu kullanımda! Başka kod deneniyor...', 'error');
+                        reject(err);
+                    } else {
+                        // Diğer hatalar
                     }
-                    // reject(err); 
                 });
             });
         }
@@ -1111,20 +1112,45 @@
 
             if (!myUsername || !roomCode) return showToast('Bilgileri gir!', 'error');
 
+            showToast('Bağlanılıyor...', 'info');
+
             try {
-                await initPeer();
-                hostConnection = peer.connect(roomCode);
+                if (peer && !peer.destroyed) {
+                    // Peer aktif, devam et
+                } else {
+                    await initPeer();
+                }
+
+                hostConnection = peer.connect(roomCode, { reliable: true });
+
+                const connectionTimeout = setTimeout(() => {
+                    showToast('Bağlantı zaman aşımı! Oda sahibi çevrimdışı olabilir.', 'error');
+                }, 5000);
 
                 hostConnection.on('open', () => {
+                    clearTimeout(connectionTimeout);
                     connections[roomCode] = hostConnection;
                     hostConnection.send({ type: 'join', username: myUsername, password: password });
 
                     hostConnection.on('data', d => handleMessage(roomCode, d));
                     document.getElementById('room-code-display').innerText = roomCode;
                     showScreen('lobby');
+                    showToast('Bağlandı!', 'success');
                 });
-                hostConnection.on('error', () => showToast('Bağlantı hatası!', 'error'));
-            } catch (err) { console.error(err); }
+
+                hostConnection.on('error', (err) => {
+                    clearTimeout(connectionTimeout);
+                    console.error(err);
+                    showToast('Bağlantı hatası!', 'error');
+                });
+
+                hostConnection.on('close', () => {
+                    showToast('Bağlantı koptu!', 'error');
+                });
+            } catch (err) {
+                console.error(err);
+                showToast('Hata: ' + err.message, 'error');
+            }
         }
 
         function startGame() {
