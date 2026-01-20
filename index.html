@@ -747,9 +747,15 @@
                     config: {
                         iceServers: [
                             { urls: 'stun:stun.l.google.com:19302' },
-                            { urls: 'stun:stun1.l.google.com:19302' }
-                        ]
-                    }
+                            { urls: 'stun:stun1.l.google.com:19302' },
+                            { urls: 'stun:stun2.l.google.com:19302' },
+                            { urls: 'stun:stun3.l.google.com:19302' },
+                            { urls: 'stun:stun4.l.google.com:19302' }
+                        ],
+                        sdpSemantics: 'unified-plan'
+                    },
+                    secure: true,
+                    debug: 2
                 };
                 peer = id ? new Peer(id, config) : new Peer(config);
 
@@ -1121,7 +1127,7 @@
                     await initPeer();
                 }
 
-                hostConnection = peer.connect(roomCode, { reliable: true });
+                hostConnection = peer.connect(roomCode, { reliable: true, serialization: 'json' });
 
                 const connectionTimeout = setTimeout(() => {
                     showToast('Bağlantı zaman aşımı! Oda sahibi çevrimdışı olabilir.', 'error');
