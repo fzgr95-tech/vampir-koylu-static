@@ -470,7 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff00d4">v1.9.1 (ROLE
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ffd700">v1.9.2 (ACTION
                     FIX)</small>
             </h1>
 
@@ -1717,7 +1717,9 @@
             // Night Panel
             const nightPanel = document.getElementById('night-action-panel');
             const nightRoles = ['vampire', 'doctor', 'seer', 'witch'];
-            if (gameState.phase === 'night' && me.isAlive && nightRoles.includes(me.role)) {
+            const myAction = gameState.nightActions[myPeerId];
+
+            if (gameState.phase === 'night' && me.isAlive && nightRoles.includes(me.role) && !myAction) {
                 nightPanel.classList.remove('hidden');
                 document.getElementById('night-targets').innerHTML = '';
 
