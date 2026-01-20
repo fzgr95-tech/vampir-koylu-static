@@ -1346,7 +1346,17 @@
             gameState.countdown = gameState.voteDuration || 30;
             Object.values(gameState.players).forEach(p => p.vote = null);
             broadcastState();
+            broadcastState();
             broadcast({ type: 'notification', message: `⚠️ OYLAMA BAŞLADI! ${gameState.countdown} saniyeniz var!`, urgency: 'high' });
+
+            // Show Alert
+            const modal = document.createElement('div');
+            modal.style.position = 'fixed'; modal.style.top = '20%'; modal.style.left = '50%'; modal.style.transform = 'translate(-50%, -50%)';
+            modal.style.background = 'red'; modal.style.color = 'white'; modal.style.padding = '20px'; modal.style.zIndex = '9999';
+            modal.style.fontWeight = 'bold'; modal.style.borderRadius = '10px'; modal.innerText = '⚠️ OYLAMA BAŞLADI!';
+            document.body.appendChild(modal);
+            setTimeout(() => modal.remove(), 2000);
+
             startCountdown(() => resolveVotes());
 
             // Botlar Rastgele Oy Versin
@@ -1642,7 +1652,8 @@
             if (!me) return;
 
             // Header
-            document.getElementById('role-badge').innerText = getRoleEmoji(me.role) + ' ' + me.role.toUpperCase();
+            // Header
+            document.getElementById('role-badge').innerText = getRoleEmoji(me.role) + ' ' + getRoleName(me.role);
             document.getElementById('role-badge').className = `role-badge role-${me.role}`;
             document.getElementById('phase-display').innerText = gameState.phase === 'day' ? '☀️ GÜNDÜZ' : (gameState.phase === 'night' ? '🌙 GECE' : '🗳️ OYLAMA');
             document.getElementById('countdown').innerText = gameState.countdown;
@@ -1657,19 +1668,33 @@
             }
 
             // Grid
+            // Grid
             const grid = document.getElementById('players-grid');
             grid.innerHTML = '';
 
-            const showingVotes = (gameState.phase === 'voting'); // Or end of vote
-            // In voting phase, we usually hide votes until result
+            const showingVotes = (gameState.phase === 'voting');
 
             Object.entries(gameState.players).forEach(([id, p]) => {
                 const div = document.createElement('div');
                 div.className = `vote-card ${p.isAlive ? '' : 'is-dead'}`;
+
+                // Visual Votes: Show who they voted for (Visible to everyone as per request)
+                let voteBadge = '';
+                if (showingVotes) {
+                    const targetId = p.vote;
+                    if (targetId && gameState.players[targetId]) {
+                        voteBadge = `<div style="font-size:0.75rem; color:#ffd700; margin-top:5px;">🗳️ -> ${gameState.players[targetId].name}</div>`;
+                    }
+                }
+
+                // Death Reveal: Show Role if dead
+                const roleDisplay = (!p.isAlive) ? `<div style="font-size:0.8rem; color:#ff4444;">💀 ${getRoleEmoji(p.role)} ${getRoleName(p.role)}</div>` : '';
+
                 div.innerHTML = `
                     <div class="player-avatar">${p.name[0]}</div>
                     <div class="player-name">${p.name}</div>
-                    ${!p.isAlive ? '<small>💀 Ölü</small>' : ''}
+                    ${roleDisplay}
+                    ${voteBadge}
                  `;
 
                 if (gameState.phase === 'voting' && id !== myPeerId && me.isAlive) {
@@ -2151,6 +2176,21 @@
             } else {
                 inviteDiv.classList.add('hidden');
             }
+        }
+
+        // Helper for Turkish Role Names
+        function getRoleName(role) {
+            const map = {
+                'vampire': 'VAMPİR',
+                'villager': 'KÖYLÜ',
+                'doctor': 'DOKTOR',
+                'seer': 'KAHİN',
+                'traitor': 'HAİN',
+                'hunter': 'AVCI',
+                'witch': 'BÜYÜCÜ',
+                'sheriff': 'ŞERİF'
+            };
+            return map[role] || (role ? role.toUpperCase() : 'BELİRSİZ');
         }
 
         // Start App
