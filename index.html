@@ -1090,6 +1090,16 @@
             }
         }
 
+        function broadcast(data) {
+            if (!isHost) return;
+            Object.values(connections).forEach(conn => {
+                if (conn && conn.open) {
+                    conn.send(data);
+                }
+            });
+            // Bots don't need network messages
+        }
+
         function broadcastState() {
             broadcast({ type: 'state', state: gameState });
             updateUI();
@@ -1166,10 +1176,37 @@
                 document.getElementById('lobby-title').innerText = gameState.roomName;
                 document.getElementById('host-controls').classList.remove('hidden');
 
+                // Add Bot Button
+                const btnBot = document.createElement('button');
+                btnBot.className = 'btn btn-secondary';
+                btnBot.innerText = '🤖 Bot Ekle';
+                btnBot.style.marginTop = '10px';
+                btnBot.onclick = addBot;
+                document.getElementById('host-controls').appendChild(btnBot);
+
                 showScreen('lobby');
                 updateLobbyPlayers();
                 showToast('Oda kuruldu: ' + roomCode);
             } catch (err) { console.error(err); }
+        }
+
+        // ========== BOT SYSTEM ==========
+        function addBot() {
+            if (!isHost) return;
+            const botId = 'Bot-' + Math.floor(Math.random() * 1000);
+            const botName = 'Bot ' + (Object.keys(gameState.players).length + 1);
+
+            gameState.players[botId] = {
+                name: botName,
+                role: null,
+                isAlive: true,
+                vote: null,
+                isBot: true // Flag to identify bots
+            };
+
+            updateLobbyPlayers();
+            broadcastState();
+            showToast(botName + ' eklendi!');
         }
 
         async function joinRoom() {
@@ -1311,6 +1348,24 @@
             broadcastState();
             broadcast({ type: 'notification', message: `⚠️ OYLAMA BAŞLADI! ${gameState.countdown} saniyeniz var!`, urgency: 'high' });
             startCountdown(() => resolveVotes());
+
+            // Botlar Rastgele Oy Versin
+            simulateBotVotes();
+        }
+
+        function simulateBotVotes() {
+            if (!isHost) return;
+            setTimeout(() => {
+                const bots = Object.keys(gameState.players).filter(id => gameState.players[id].isBot && gameState.players[id].isAlive);
+                const candidates = Object.keys(gameState.players).filter(id => gameState.players[id].isAlive);
+
+                bots.forEach(botId => {
+                    const target = candidates[Math.floor(Math.random() * candidates.length)];
+                    gameState.players[botId].vote = target;
+                    // Visualize bot vote (optional toast or just wait for results)
+                });
+                checkAllVoted();
+            }, 3000 + Math.random() * 5000); // 3-8sn içinde oy ver
         }
 
         function startNightPhase() {
@@ -1856,6 +1911,8 @@
             // Herkesi ara (Mesh)
             Object.keys(gameState.players).forEach(pid => {
                 if (pid === myPeerId) return;
+                if (gameState.players[pid].isBot) return; // SKIP BOTS in Voice Chat
+
                 const call = peer.call(pid, localStream);
                 call.on('stream', remoteStream => {
                     playAudioStream(remoteStream);
