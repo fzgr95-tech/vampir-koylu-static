@@ -470,7 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#aaa">v1.4 FALLBACK</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#aaa">v1.5 VOICE CHAT</small>
             </h1>
 
             <div class="form-section">
@@ -489,7 +489,7 @@
             </div>
 
             <div style="text-align: center; margin-top: 20px; opacity: 0.5; font-size: 0.8rem;">
-                v1.4 - Smart Connectivity
+                v1.5 - Voice Chat Ready
             </div>
 
             <!-- Oda Kurma -->
@@ -543,6 +543,17 @@
                     </p>
                 </div>
 
+                <!-- Sesli İletişim -->
+                <div style="margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="enable-voice" checked style="width: auto;">
+                        <span>🎙️ <strong>Bas-Konuş Sistemi</strong></span>
+                    </label>
+                    <p style="font-size: 0.85rem; color: rgba(255,255,255,0.6); margin-top: 8px;">
+                        Oyuncular butona basarak konuşabilir. (Ücretsiz P2P)
+                    </p>
+                </div>
+
                 <button class="btn btn-action" onclick="createRoom()">Oluştur</button>
                 <button class="btn btn-text" onclick="hideCreateRoom()">İptal</button>
             </div>
@@ -570,6 +581,8 @@
 
             <div id="host-controls" class="hidden" style="width: 100%;">
                 <button class="btn btn-primary pulse" onclick="startGame()">🎮 Oyunu Başlat</button>
+                <button class="btn btn-secondary" onclick="toggleGlobalVoice()" id="btn-toggle-voice"
+                    style="margin-top: 10px;">🎙️ Sesli Sohbet: AÇIK</button>
             </div>
 
             <button class="btn btn-text" onclick="leaveLobby()">← Çık</button>
@@ -647,6 +660,20 @@
                     <button class="btn btn-primary" onclick="sendGameChat()">➤</button>
                 </div>
             </div>
+
+            <!-- Voice Chat Controls -->
+            <div id="voice-chat-controls" class="hidden"
+                style="position: absolute; bottom: 100px; right: 20px; z-index: 100;">
+                <button id="btn-mic"
+                    style="width: 60px; height: 60px; border-radius: 50%; border: none; background: #444; color: white; font-size: 1.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; transition: all 0.2s;"
+                    onmousedown="startTalking()" onmouseup="stopTalking()" ontouchstart="startTalking()"
+                    ontouchend="stopTalking()">
+                    🎙️
+                </button>
+                <div id="voice-status" style="font-size: 0.8rem; text-align: center; margin-top: 5px; opacity: 0.7;">
+                    Bas-Konuş</div>
+            </div>
+
             <!-- Version Footer -->
             <div style="text-align: center; margin-top: 10px; opacity: 0.5; font-size: 0.8rem;">v1.3</div>
         </div>
@@ -1045,6 +1072,7 @@
 
                 case 'game_start':
                     showScreen('game');
+                    if (gameState.voiceEnabled) joinVoiceChat(); // Oyuncular da katılsın
                     break;
 
                 case 'game_end':
@@ -1068,9 +1096,21 @@
             gameState.password = document.getElementById('room-password-input').value.trim();
             gameState.vampireCount = parseInt(document.getElementById('vampire-count-input').value);
             gameState.duration = parseInt(document.getElementById('duration-input').value);
+            gameState.duration = parseInt(document.getElementById('duration-input').value);
             gameState.voteDuration = parseInt(document.getElementById('vote-duration-input').value) || 30;
 
+            // Sesli Sohbeti yakala ve başlat
+            gameState.voiceEnabled = document.getElementById('enable-voice').checked;
+            if (gameState.voiceEnabled) initAudio();
+
             // Rol ayarlarını kaydet
+            // ... (omitted role settings)
+
+            showToast('Oda oluşturuluyor...', 'info');
+            await initPeer();
+            if (gameState.voiceEnabled) initAudio(); // İzin iste
+
+            isHost = true;
             gameState.roles = {
                 doctor: document.getElementById('role-doctor').checked,
                 seer: document.getElementById('role-seer').checked,
@@ -1088,6 +1128,9 @@
             gameState.alliances = {};
             gameState.allianceInvites = {};
             gameState.nextAllianceId = 1;
+
+            // Sesli Sohbet Sistemi
+            gameState.voiceEnabled = document.getElementById('enable-voice').checked;
 
             try {
                 // If I was manager, stop being manager
@@ -1130,11 +1173,14 @@
             showToast('Bağlanılıyor...', 'info');
 
             try {
+                if (document.getElementById('enable-voice')?.checked || true) initAudio(); // Katılan da izin versin (Varsayılan true)
                 if (peer && !peer.destroyed) {
                     // Peer aktif, devam et
                 } else {
                     await initPeer();
                 }
+
+                if (document.getElementById('enable-voice')?.checked || true) initAudio(); // Katılan da izin versin
 
                 hostConnection = peer.connect(roomCode, { reliable: true, serialization: 'json' });
 
@@ -1225,6 +1271,7 @@
 
             broadcast({ type: 'game_start' });
             showScreen('game');
+            if (gameState.voiceEnabled) joinVoiceChat(); // Host da katılsın
             startDayPhase();
         }
 
@@ -1769,7 +1816,93 @@
             // We can check gameState.players roles.
         }
 
-        // Listeners for UI interaction
+        // ========== SESLİ SOHBET (P2P MESH) ==========
+        let localStream = null;
+        let audioPeers = {}; // { peerId: MediaConnection }
+
+        async function initAudio() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                // Başlangıçta sessize al (PTT)
+                localStream.getAudioTracks()[0].enabled = false;
+                showToast('Mikrofon hazır! Bas-Konuş kullanabilirsiniz.', 'success');
+
+                // Gelen aramaları dinle
+                peer.on('call', call => {
+                    call.answer(localStream);
+                    call.on('stream', remoteStream => {
+                        playAudioStream(remoteStream);
+                    });
+                });
+
+            } catch (err) {
+                console.error('Audio init error:', err);
+                showToast('Mikrofon izni verilmedi! Sadece dinleyebilirsiniz.', 'warning');
+            }
+        }
+
+        function joinVoiceChat() {
+            if (!localStream) return;
+
+            // Herkesi ara (Mesh)
+            Object.keys(gameState.players).forEach(pid => {
+                if (pid === myPeerId) return;
+                const call = peer.call(pid, localStream);
+                call.on('stream', remoteStream => {
+                    playAudioStream(remoteStream);
+                });
+                audioPeers[pid] = call;
+            });
+        }
+
+        function playAudioStream(stream) {
+            const audio = document.createElement('audio');
+            audio.srcObject = stream;
+            audio.autoplay = true;
+            document.body.appendChild(audio);
+        }
+
+        function startTalking() {
+            if (!localStream || !gameState.voiceEnabled) return;
+            localStream.getAudioTracks()[0].enabled = true;
+            document.getElementById('btn-mic').style.background = '#00d4ff';
+            document.getElementById('btn-mic').style.transform = 'scale(1.1)';
+
+            // Konuştuğunu görselleştir (Opsiyonel: Veri gönder)
+        }
+
+        function stopTalking() {
+            if (!localStream) return;
+            localStream.getAudioTracks()[0].enabled = false;
+            document.getElementById('btn-mic').style.background = '#444';
+            document.getElementById('btn-mic').style.transform = 'scale(1.0)';
+        }
+
+        function toggleGlobalVoice() {
+            if (!isHost) return;
+            gameState.voiceEnabled = !gameState.voiceEnabled;
+            broadcastState();
+
+            const btn = document.getElementById('btn-toggle-voice');
+            if (gameState.voiceEnabled) {
+                btn.innerText = '🎙️ Sesli Sohbet: AÇIK';
+                btn.classList.add('btn-secondary');
+                btn.classList.remove('btn-text');
+            } else {
+                btn.innerText = '🔇 Sesli Sohbet: KAPALI';
+                btn.classList.add('btn-text');
+                btn.classList.remove('btn-secondary');
+            }
+        }
+
+        // ========== INIT APP & UI LISTENERS ==========
+
+        // ========== INIT APP & UI LISTENERS ==========
+
+        function initApp() {
+            console.log('App v1.5 with Voice Chat Ready');
+        }
+
         function showCreateRoom() { document.getElementById('create-form').classList.remove('hidden'); document.getElementById('join-form').classList.add('hidden'); }
         function showJoinRoom() { document.getElementById('join-form').classList.remove('hidden'); document.getElementById('create-form').classList.add('hidden'); }
         function hideCreateRoom() { document.getElementById('create-form').classList.add('hidden'); }
