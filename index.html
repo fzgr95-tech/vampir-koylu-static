@@ -525,6 +525,17 @@
                     </label>
                 </div>
 
+                <!-- İttifak Sistemi -->
+                <div style="margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="enable-alliance" style="width: auto;">
+                        <span>🤝 <strong>İttifak Sistemi</strong></span>
+                    </label>
+                    <p style="font-size: 0.85rem; color: rgba(255,255,255,0.6); margin-top: 8px;">
+                        Oyuncular grup kurabilir. Gruptaki biri ölürse hepsi ölür!
+                    </p>
+                </div>
+
                 <button class="btn btn-action" onclick="createRoom()">Oluştur</button>
                 <button class="btn btn-text" onclick="hideCreateRoom()">İptal</button>
             </div>
@@ -586,6 +597,30 @@
                 <h3 id="night-action-title">Gece Aksiyonu</h3>
                 <p id="night-action-desc" style="margin-bottom: 15px;"></p>
                 <div id="night-targets" class="vote-grid"></div>
+            </div>
+
+            <!-- İttifak Paneli -->
+            <div id="alliance-panel" class="form-section hidden">
+                <h3>🤝 İttifak</h3>
+                <div id="alliance-status" style="margin-bottom: 10px; font-size: 0.9rem;"></div>
+                <div id="alliance-invite-pending" class="hidden"
+                    style="background: rgba(255,150,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                    <p id="alliance-invite-text"></p>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="btn btn-primary" onclick="acceptAllianceInvite()">✓ Kabul</button>
+                        <button class="btn btn-secondary" onclick="rejectAllianceInvite()">✗ Reddet</button>
+                    </div>
+                </div>
+                <div id="alliance-actions">
+                    <button class="btn btn-secondary" onclick="showAllianceInvitePanel()" id="btn-invite-alliance">👥
+                        Davet Gönder</button>
+                    <button class="btn btn-text hidden" onclick="leaveAlliance()" id="btn-leave-alliance">🚪 Gruptan
+                        Ayrıl</button>
+                </div>
+                <div id="alliance-invite-panel" class="hidden" style="margin-top: 10px;">
+                    <p style="margin-bottom: 10px;">Kimi davet etmek istiyorsun?</p>
+                    <div id="alliance-invite-targets" class="vote-grid"></div>
+                </div>
             </div>
 
             <div id="dead-controls" class="form-section hidden">
@@ -651,8 +686,13 @@
             countdown: 60,
             chaosEvent: null,
             duelScores: {},
-            hunterTarget: null, // Avcı ölürken hedef seçimi
-            witchPotions: { heal: true, poison: true }, // Büyücü iksirleri
+            hunterTarget: null,
+            witchPotions: { heal: true, poison: true },
+            // İttifak sistemi
+            allianceEnabled: false,
+            alliances: {}, // { allianceId: [playerId1, playerId2, ...] }
+            allianceInvites: {}, // { targetPlayerId: { from: playerId, allianceId: id } }
+            nextAllianceId: 1,
             // Dinamik rol ayarları
             roles: {
                 doctor: true,
@@ -869,6 +909,57 @@
                     }
                     break;
 
+                // --- ALLIANCE EVENTS (Host Only) ---
+                case 'alliance_invite':
+                    if (isHost && gameState.allianceEnabled) {
+                        const myAlliance = getMyAllianceForPlayer(fromPeerId);
+                        const allianceId = myAlliance ? myAlliance.id : gameState.nextAllianceId;
+
+                        if (!myAlliance) {
+                            gameState.alliances[allianceId] = [fromPeerId];
+                            gameState.nextAllianceId++;
+                        }
+
+                        gameState.allianceInvites[data.target] = { from: fromPeerId, allianceId: allianceId };
+                        broadcastState();
+                    }
+                    break;
+
+                case 'alliance_accept':
+                    if (isHost && gameState.allianceEnabled) {
+                        const invite = gameState.allianceInvites[fromPeerId];
+                        if (invite) {
+                            if (!gameState.alliances[invite.allianceId]) {
+                                gameState.alliances[invite.allianceId] = [invite.from];
+                            }
+                            gameState.alliances[invite.allianceId].push(fromPeerId);
+                            delete gameState.allianceInvites[fromPeerId];
+                            broadcastState();
+                        }
+                    }
+                    break;
+
+                case 'alliance_reject':
+                    if (isHost && gameState.allianceEnabled) {
+                        delete gameState.allianceInvites[fromPeerId];
+                        broadcastState();
+                    }
+                    break;
+
+                case 'alliance_leave':
+                    if (isHost && gameState.allianceEnabled) {
+                        const alliance = getMyAllianceForPlayer(fromPeerId);
+                        if (alliance) {
+                            const idx = gameState.alliances[alliance.id].indexOf(fromPeerId);
+                            if (idx > -1) gameState.alliances[alliance.id].splice(idx, 1);
+                            if (gameState.alliances[alliance.id].length === 0) {
+                                delete gameState.alliances[alliance.id];
+                            }
+                            broadcastState();
+                        }
+                    }
+                    break;
+
                 case 'state':
                     gameState = data.state;
                     updateUI();
@@ -919,6 +1010,7 @@
                 case 'hunter_revenge':
                     if (isHost && data.target) {
                         gameState.players[data.target].isAlive = false;
+                        killAllianceMembers(data.target); // İttifak arkadaşlarını da öldür
                         const targetName = gameState.players[data.target].name;
                         const targetRole = gameState.players[data.target].role;
                         document.getElementById('game-message').innerText += ` 🏹 Avcı ${targetName}'i beraberinde götürdü! (${getRoleEmoji(targetRole)})`;
@@ -966,6 +1058,12 @@
 
             // Büyücü iksirlerini sıfırla
             gameState.witchPotions = { heal: true, poison: true };
+
+            // İttifak sistemi
+            gameState.allianceEnabled = document.getElementById('enable-alliance').checked;
+            gameState.alliances = {};
+            gameState.allianceInvites = {};
+            gameState.nextAllianceId = 1;
 
             try {
                 // If I was manager, stop being manager
@@ -1171,6 +1269,7 @@
                 const victimId = victims[0];
                 const v = gameState.players[victimId];
                 v.isAlive = false;
+                killAllianceMembers(victimId); // İttifak arkadaşlarını da öldür
                 msg = `⚰️ ${v.name} asıldı! Rolü: ${getRoleEmoji(v.role)} ${v.role.toUpperCase()}`;
 
                 // Avcı öldüyse hedef seçmesi gerekiyor
@@ -1184,6 +1283,7 @@
                     victims.forEach(id => {
                         const v = gameState.players[id];
                         v.isAlive = false;
+                        killAllianceMembers(id); // İttifak arkadaşlarını da öldür
                         if (v.role === 'hunter') {
                             hunterTriggered = true;
                             hunterVictimId = id;
@@ -1224,6 +1324,7 @@
                     // Hedefi öldür
                     if (isHost) {
                         gameState.players[id].isAlive = false;
+                        killAllianceMembers(id); // İttifak arkadaşlarını da öldür
                         const targetName = gameState.players[id].name;
                         const targetRole = gameState.players[id].role;
                         document.getElementById('game-message').innerText += ` 🏹 Avcı ${targetName}'i beraberinde götürdü! (${getRoleEmoji(targetRole)})`;
@@ -1268,6 +1369,7 @@
                 } else {
                     const p = gameState.players[victim];
                     p.isAlive = false;
+                    killAllianceMembers(victim); // İttifak arkadaşlarını da öldür
                     deaths.push(p.name);
                 }
             }
@@ -1276,6 +1378,7 @@
             if (witchPoison && gameState.players[witchPoison]) {
                 const poisoned = gameState.players[witchPoison];
                 poisoned.isAlive = false;
+                killAllianceMembers(witchPoison); // İttifak arkadaşlarını da öldür
                 deaths.push(poisoned.name + ' (zehirlendi)');
             }
 
@@ -1493,6 +1596,9 @@
             } else {
                 document.getElementById('dead-controls').classList.add('hidden');
             }
+
+            // Update Alliance UI
+            updateAllianceUI();
         }
 
         function updateLobbyPlayers() {
@@ -1594,6 +1700,165 @@
         function hideCreateRoom() { document.getElementById('create-form').classList.add('hidden'); }
         function hideJoinRoom() { document.getElementById('join-form').classList.add('hidden'); }
         function leaveLobby() { backToHome(); }
+
+        // ========== İTTİFAK SİSTEMİ ==========
+        function getMyAlliance() {
+            for (const [allianceId, members] of Object.entries(gameState.alliances)) {
+                if (members.includes(myPeerId)) return { id: allianceId, members };
+            }
+            return null;
+        }
+
+        function getMyAllianceForPlayer(playerId) {
+            for (const [allianceId, members] of Object.entries(gameState.alliances)) {
+                if (members.includes(playerId)) return { id: allianceId, members };
+            }
+            return null;
+        }
+
+        function showAllianceInvitePanel() {
+            const panel = document.getElementById('alliance-invite-panel');
+            const targets = document.getElementById('alliance-invite-targets');
+            targets.innerHTML = '';
+
+            Object.entries(gameState.players).forEach(([id, p]) => {
+                if (!p.isAlive || id === myPeerId) return;
+                // Zaten aynı gruptaysa ekleme
+                const myAlliance = getMyAlliance();
+                if (myAlliance && myAlliance.members.includes(id)) return;
+
+                const btn = document.createElement('div');
+                btn.className = 'vote-card';
+                btn.innerHTML = p.name;
+                btn.style.padding = '10px';
+                btn.style.cursor = 'pointer';
+                btn.onclick = () => sendAllianceInvite(id);
+                targets.appendChild(btn);
+            });
+
+            panel.classList.toggle('hidden');
+        }
+
+        function sendAllianceInvite(targetId) {
+            const myAlliance = getMyAlliance();
+            const allianceId = myAlliance ? myAlliance.id : gameState.nextAllianceId;
+
+            if (isHost) {
+                if (!myAlliance) {
+                    // Yeni ittifak oluştur
+                    gameState.alliances[allianceId] = [myPeerId];
+                    gameState.nextAllianceId++;
+                }
+                gameState.allianceInvites[targetId] = { from: myPeerId, allianceId: allianceId };
+                broadcastState();
+                showToast('📨 Davet gönderildi!');
+            } else {
+                sendToHost({ type: 'alliance_invite', target: targetId });
+            }
+            document.getElementById('alliance-invite-panel').classList.add('hidden');
+        }
+
+        function acceptAllianceInvite() {
+            const invite = gameState.allianceInvites[myPeerId];
+            if (!invite) return;
+
+            if (isHost) {
+                // İttifaka katıl
+                if (!gameState.alliances[invite.allianceId]) {
+                    gameState.alliances[invite.allianceId] = [invite.from];
+                }
+                gameState.alliances[invite.allianceId].push(myPeerId);
+                delete gameState.allianceInvites[myPeerId];
+                broadcastState();
+                showToast('🤝 İttifaka katıldın!');
+            } else {
+                sendToHost({ type: 'alliance_accept' });
+            }
+        }
+
+        function rejectAllianceInvite() {
+            if (isHost) {
+                delete gameState.allianceInvites[myPeerId];
+                broadcastState();
+            } else {
+                sendToHost({ type: 'alliance_reject' });
+            }
+            showToast('❌ Davet reddedildi');
+        }
+
+        function leaveAlliance() {
+            const myAlliance = getMyAlliance();
+            if (!myAlliance) return;
+
+            if (isHost) {
+                const idx = gameState.alliances[myAlliance.id].indexOf(myPeerId);
+                if (idx > -1) gameState.alliances[myAlliance.id].splice(idx, 1);
+                // Grupta kimse kalmadıysa sil
+                if (gameState.alliances[myAlliance.id].length === 0) {
+                    delete gameState.alliances[myAlliance.id];
+                }
+                broadcastState();
+                showToast('🚪 Gruptan ayrıldın');
+            } else {
+                sendToHost({ type: 'alliance_leave' });
+            }
+        }
+
+        function killAllianceMembers(victimId) {
+            // Bir oyuncu öldüğünde, aynı ittifaktaki herkesi öldür
+            if (!gameState.allianceEnabled) return;
+
+            for (const [allianceId, members] of Object.entries(gameState.alliances)) {
+                if (members.includes(victimId)) {
+                    members.forEach(memberId => {
+                        if (gameState.players[memberId] && gameState.players[memberId].isAlive) {
+                            gameState.players[memberId].isAlive = false;
+                        }
+                    });
+                    break;
+                }
+            }
+        }
+
+        function updateAllianceUI() {
+            if (!gameState.allianceEnabled) {
+                document.getElementById('alliance-panel').classList.add('hidden');
+                return;
+            }
+
+            const me = gameState.players[myPeerId];
+            if (!me || !me.isAlive) {
+                document.getElementById('alliance-panel').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('alliance-panel').classList.remove('hidden');
+
+            const myAlliance = getMyAlliance();
+            const statusDiv = document.getElementById('alliance-status');
+
+            if (myAlliance && myAlliance.members.length > 1) {
+                const memberNames = myAlliance.members
+                    .map(id => gameState.players[id]?.name || '?')
+                    .join(', ');
+                statusDiv.innerHTML = `<span style="color: #4ade80;">🤝 Grubun: ${memberNames}</span>`;
+                document.getElementById('btn-leave-alliance').classList.remove('hidden');
+            } else {
+                statusDiv.innerHTML = '<span style="color: rgba(255,255,255,0.5);">Henüz bir grupta değilsin</span>';
+                document.getElementById('btn-leave-alliance').classList.add('hidden');
+            }
+
+            // Bekleyen davet var mı?
+            const invite = gameState.allianceInvites[myPeerId];
+            const inviteDiv = document.getElementById('alliance-invite-pending');
+            if (invite && gameState.players[invite.from]) {
+                document.getElementById('alliance-invite-text').innerText =
+                    `${gameState.players[invite.from].name} seni ittifaka davet ediyor!`;
+                inviteDiv.classList.remove('hidden');
+            } else {
+                inviteDiv.classList.add('hidden');
+            }
+        }
 
         // Start App
         initApp();
