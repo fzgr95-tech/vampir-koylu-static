@@ -1626,6 +1626,17 @@
                 updateLobbyPlayers();
                 return;
             }
+
+            // Voice Chat UI Visibility Check (Continuous)
+            const voiceControls = document.getElementById('voice-chat-controls');
+            if (voiceControls) {
+                if (gameState.voiceEnabled) {
+                    voiceControls.classList.remove('hidden');
+                } else {
+                    voiceControls.classList.add('hidden');
+                }
+            }
+
             // Game UI
             const me = gameState.players[myPeerId];
             if (!me) return;
