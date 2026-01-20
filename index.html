@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#0099ff">v2.0.4 (PC
-                    FIX)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff00ff">v2.0.5 (PC HOTFIX
+                    2)</small>
             </h1>
 
             <div class="form-section">
@@ -1150,24 +1150,22 @@
                 gameState.duration = parseInt(document.getElementById('duration-input').value);
                 gameState.voteDuration = parseInt(document.getElementById('vote-duration-input').value) || 30;
 
-                // Sesli Sohbeti yakala ve başlat
-                gameState.voiceEnabled = document.getElementById('enable-voice').checked;
+                // Create Room UI immediately
+                showToast('Oda oluşturuluyor...', 'info');
 
-                showToast('Oda oluşturuluyor... Lütfen bekle.', 'info');
-
-                // Initialize Peer
-                if (!peer) await initPeer();
-
-                if (gameState.voiceEnabled) {
-                    try {
-                        await initAudio();
-                    } catch (e) {
-                        console.error('Mic failed', e);
-                        showToast('Mikrofon başlatılamadı, ama oyun açılıyor.', 'warning');
-                    }
+                // Initialize Peer with critical timeout (essential for ID)
+                try {
+                    if (!peer || peer.disconnected) await initPeer();
+                } catch (e) {
+                    console.error(e);
+                    return showToast('Bağlantı hatası: ' + e.message, 'error');
                 }
 
+                // SETUP GAME STATE
                 isHost = true;
+                gameState.players[myPeerId] = { name: myUsername, role: null, isAlive: true, vote: null };
+
+                gameState.voiceEnabled = document.getElementById('enable-voice').checked;
                 gameState.roles = {
                     doctor: document.getElementById('role-doctor').checked,
                     seer: document.getElementById('role-seer').checked,
@@ -1176,60 +1174,59 @@
                     witch: document.getElementById('role-witch').checked,
                     sheriff: document.getElementById('role-sheriff').checked
                 };
-
-                // Büyücü iksirlerini sıfırla
                 gameState.witchPotions = { heal: true, poison: true };
-
-                // İttifak sistemi
                 gameState.allianceEnabled = document.getElementById('enable-alliance').checked;
                 gameState.alliances = {};
                 gameState.allianceInvites = {};
                 gameState.nextAllianceId = 1;
 
-                // Register to Lobby
-                try {
-                    // If I was manager, stop being manager
-                    if (isLobbyManager) {
-                        isLobbyManager = false;
-                        if (peer) peer.destroy();
-                        await initPeer(generateRoomCode()); // Re-init with new ID if needed
-                    } else if (!peer || peer.disconnected) {
-                        await initPeer();
-                    }
+                // IMMEDIATELY SHOW LOBBY (Don't wait for audio/lobby sync)
+                document.getElementById('room-code-display').innerText = roomCode;
+                document.getElementById('lobby-title').innerText = gameState.roomName;
+                document.getElementById('host-controls').classList.remove('hidden');
 
-                    isHost = true;
-                    gameState.players[myPeerId] = { name: myUsername, role: null, isAlive: true, vote: null };
-
-                    announceRoom();
-                    setInterval(announceRoom, 3000);
-
-                    document.getElementById('room-code-display').innerText = roomCode;
-                    document.getElementById('lobby-title').innerText = gameState.roomName;
-                    document.getElementById('host-controls').classList.remove('hidden');
-
-                    // Add Bot Button Check
-                    if (!document.getElementById('btn-add-bot')) {
-                        const btnBot = document.createElement('button');
-                        btnBot.id = 'btn-add-bot';
-                        btnBot.className = 'btn btn-secondary';
-                        btnBot.innerText = '🤖 Bot Ekle';
-                        btnBot.style.marginTop = '10px';
-                        btnBot.onclick = addBot;
-                        document.getElementById('host-controls').appendChild(btnBot);
-                    }
-
-                    showScreen('lobby');
-                    updateLobbyPlayers();
-                    showToast('Oda kuruldu: ' + roomCode);
-                } catch (err) {
-                    console.error(err);
-                    showToast('Lobi hatası: ' + err.message, 'error');
+                // Add Bot Button Check
+                if (!document.getElementById('btn-add-bot')) {
+                    const btnBot = document.createElement('button');
+                    btnBot.id = 'btn-add-bot';
+                    btnBot.className = 'btn btn-secondary';
+                    btnBot.innerText = '🤖 Bot Ekle';
+                    btnBot.style.marginTop = '10px';
+                    btnBot.onclick = addBot;
+                    document.getElementById('host-controls').appendChild(btnBot);
                 }
+
+                showScreen('lobby');
+                updateLobbyPlayers();
+                showToast('Oda kuruldu: ' + roomCode, 'success');
+
+                // BACKGROUND TASKS (Non-blocking)
+                (async () => {
+                    // 1. Audio Init
+                    if (gameState.voiceEnabled) {
+                        try {
+                            showToast('Mikrofon hazırlanıyor...', 'info');
+                            await initAudio();
+                        } catch (e) {
+                            console.error('Background Audio Init Failed', e);
+                            showToast('Mikrofon açılmadı, ama oyun devam ediyor.', 'warning');
+                        }
+                    }
+                    // 2. Lobby Announce
+                    try {
+                        announceRoom();
+                        setInterval(announceRoom, 3000);
+                    } catch (e) {
+                        console.error('Lobby announce failed', e);
+                    }
+                })();
+
             } catch (e) {
                 console.error(e);
                 showToast('Oda kurma hatası: ' + e.message, 'error');
             }
         }
+
 
         // ========== BOT SYSTEM ==========
         function addBot() {
