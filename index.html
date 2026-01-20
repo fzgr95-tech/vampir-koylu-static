@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff4500">v2.0.6 (START
-                    FIX)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ffcc00">v2.0.7 (PC
+                    BYPASS)</small>
             </h1>
 
             <div class="form-section">
@@ -1159,8 +1159,10 @@
                 try {
                     if (!peer || peer.disconnected) await initPeer();
                 } catch (e) {
-                    console.error(e);
-                    return showToast('Bağlantı hatası: ' + e.message, 'error');
+                    console.error('PeerJS init failed, using local fallback:', e);
+                    // FALLBACK: Generate local-only ID if PeerJS signaling is blocked
+                    myPeerId = 'LOCAL-' + Math.random().toString(36).substring(2, 10);
+                    showToast('Bağlantı sorunu! Yerel mod aktif.', 'warning');
                 }
 
                 // SETUP GAME STATE
