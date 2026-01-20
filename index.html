@@ -470,7 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#aaa">v1.3.1 ULTIMATE</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#aaa">v1.4 FALLBACK</small>
             </h1>
 
             <div class="form-section">
@@ -489,7 +489,7 @@
             </div>
 
             <div style="text-align: center; margin-top: 20px; opacity: 0.5; font-size: 0.8rem;">
-                v1.3 - Enhanced Connectivity
+                v1.4 - Smart Connectivity
             </div>
 
             <!-- Oda Kurma -->
@@ -1138,9 +1138,35 @@
 
                 hostConnection = peer.connect(roomCode, { reliable: true, serialization: 'json' });
 
-                const connectionTimeout = setTimeout(() => {
-                    showToast('Bağlantı zaman aşımı! (15sn) Modem/Ağ engelliyor olabilir.', 'error');
-                }, 15000);
+                const connectionTimeout = setTimeout(async () => {
+                    showToast('İlk deneme başarısız... Alternatif sunucu deneniyor (Fallback)...', 'info');
+
+                    // Fallback Strategy: Destroy and retry with Minimal Config
+                    if (peer) peer.destroy();
+
+                    try {
+                        // Minimal Config (Default STUN only)
+                        peer = new Peer({ debug: 2 });
+                        await new Promise(r => peer.on('open', r));
+
+                        hostConnection = peer.connect(roomCode, { reliable: true, serialization: 'json' });
+
+                        // New timeout for fallback
+                        setTimeout(() => showToast('Bağlantı kurulamadı! Lütfen "Mobil Veri" ile deneyin.', 'error'), 10000);
+
+                        hostConnection.on('open', () => {
+                            connections[roomCode] = hostConnection;
+                            hostConnection.send({ type: 'join', username: myUsername, password: password });
+                            hostConnection.on('data', d => handleMessage(roomCode, d));
+                            document.getElementById('room-code-display').innerText = roomCode;
+                            showScreen('lobby');
+                            showToast('Alternatif bağlantı başarılı! (v1.4)', 'success');
+                        });
+
+                    } catch (fallbackErr) {
+                        console.error(fallbackErr);
+                    }
+                }, 10000); // 10s timeout for first attempt
 
                 hostConnection.on('open', () => {
                     clearTimeout(connectionTimeout);
