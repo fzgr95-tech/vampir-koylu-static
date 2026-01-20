@@ -495,6 +495,24 @@
                     placeholder="Tartışma Süresi (sn)">
                 <input type="number" id="vote-duration-input" value="30" min="10" max="120"
                     placeholder="Oylama Süresi (sn)">
+
+                <!-- Rol Seçimi -->
+                <div style="margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <p style="margin-bottom: 10px; font-weight: bold;">🎭 Özel Roller:</p>
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;">
+                        <input type="checkbox" id="role-doctor" checked style="width: auto;">
+                        <span>💉 Doktor (Geceleri korur)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;">
+                        <input type="checkbox" id="role-seer" checked style="width: auto;">
+                        <span>🔮 Medyum (Geceleri sorgular)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="role-traitor" style="width: auto;">
+                        <span>🐀 Köstebek (Vampirlerle çalışır)</span>
+                    </label>
+                </div>
+
                 <button class="btn btn-action" onclick="createRoom()">Oluştur</button>
                 <button class="btn btn-text" onclick="hideCreateRoom()">İptal</button>
             </div>
@@ -620,7 +638,13 @@
             nightActions: {},
             countdown: 60,
             chaosEvent: null,
-            duelScores: {}
+            duelScores: {},
+            // Dinamik rol ayarları
+            roles: {
+                doctor: true,
+                seer: true,
+                traitor: false
+            }
         };
 
         let countdownInterval = null;
@@ -903,6 +927,13 @@
             gameState.duration = parseInt(document.getElementById('duration-input').value);
             gameState.voteDuration = parseInt(document.getElementById('vote-duration-input').value) || 30;
 
+            // Rol ayarlarını kaydet
+            gameState.roles = {
+                doctor: document.getElementById('role-doctor').checked,
+                seer: document.getElementById('role-seer').checked,
+                traitor: document.getElementById('role-traitor').checked
+            };
+
             try {
                 // If I was manager, stop being manager
                 if (isLobbyManager) {
@@ -962,12 +993,16 @@
             const pIds = Object.keys(gameState.players);
             if (pIds.length < gameState.vampireCount + 2) return showToast('Yetersiz oyuncu!', 'error');
 
-            // Roles
+            // Roles - Dinamik rol dağıtımı
             let roles = [];
             for (let i = 0; i < gameState.vampireCount; i++) roles.push('vampire');
-            if (pIds.length > 3) roles.push('doctor');
-            if (pIds.length > 4) roles.push('seer');
-            if (pIds.length > 5) roles.push('traitor'); // Köstebek
+
+            // Sadece seçili roller eklenir
+            if (gameState.roles.doctor) roles.push('doctor');
+            if (gameState.roles.seer) roles.push('seer');
+            if (gameState.roles.traitor) roles.push('traitor');
+
+            // Kalan herkes köylü
             while (roles.length < pIds.length) roles.push('villager');
 
             // Shuffle
