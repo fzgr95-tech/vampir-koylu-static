@@ -470,7 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ff00">v2.0.2 (CRITICAL
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ffff">v2.0.3 (CONNECTION
                     FIX)</small>
             </h1>
 
@@ -795,23 +795,36 @@
 
         function initPeer(id = null) {
             return new Promise((resolve, reject) => {
+                if (peer && !peer.destroyed && !peer.disconnected) {
+                    resolve(peer.id);
+                    return;
+                }
+
                 const config = {
                     config: {
                         iceServers: [
                             { urls: 'stun:stun.l.google.com:19302' },
-                            { urls: 'stun:stun1.l.google.com:19302' },
-                            { urls: 'stun:stun2.l.google.com:19302' },
-                            { urls: 'stun:stun3.l.google.com:19302' },
-                            { urls: 'stun:stun4.l.google.com:19302' }
+                            { urls: 'stun:stun1.l.google.com:19302' }
                         ],
                         sdpSemantics: 'unified-plan'
                     },
-                    secure: true,
-                    debug: 2
+                    debug: 1
                 };
-                peer = id ? new Peer(id, config) : new Peer(config);
+
+                try {
+                    if (peer) peer.destroy(); // Clean up old
+                    peer = id ? new Peer(id, config) : new Peer(config);
+                } catch (e) {
+                    reject(e);
+                    return;
+                }
+
+                const timeout = setTimeout(() => {
+                    reject(new Error('Peer connection timed out (10s). Check network.'));
+                }, 10000);
 
                 peer.on('open', (peerId) => {
+                    clearTimeout(timeout);
                     myPeerId = peerId;
                     console.log('My ID:', peerId);
                     resolve(peerId);
@@ -822,12 +835,15 @@
                 });
 
                 peer.on('error', (err) => {
+                    clearTimeout(timeout);
                     console.error('Peer error:', err);
                     if (err.type === 'unavailable-id') {
-                        showToast('Bu oda kodu kullanımda! Başka kod deneniyor...', 'error');
+                        // Retry handled by logic or reject
                         reject(err);
                     } else {
-                        // Diğer hatalar
+                        // Don't necessarily reject on all errors, but for init we might want to
+                        // invalid-key, ssl-unavailable, etc.
+                        // reject(err);
                     }
                 });
             });
