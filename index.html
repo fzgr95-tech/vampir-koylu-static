@@ -470,7 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ffff">v2.0.3 (CONNECTION
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#0099ff">v2.0.4 (PC
                     FIX)</small>
             </h1>
 
@@ -804,7 +804,11 @@
                     config: {
                         iceServers: [
                             { urls: 'stun:stun.l.google.com:19302' },
-                            { urls: 'stun:stun1.l.google.com:19302' }
+                            { urls: 'stun:stun1.l.google.com:19302' },
+                            { urls: 'stun:stun2.l.google.com:19302' },
+                            { urls: 'stun:stun3.l.google.com:19302' },
+                            { urls: 'stun:stun4.l.google.com:19302' },
+                            { urls: 'stun:global.stun.twilio.com:3478' }
                         ],
                         sdpSemantics: 'unified-plan'
                     },
@@ -2000,7 +2004,17 @@
 
         async function initAudio() {
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                // Timeout promise
+                const timeout = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Mic permission request timed out')), 5000)
+                );
+
+                // Race between user action and timeout
+                localStream = await Promise.race([
+                    navigator.mediaDevices.getUserMedia({ audio: true, video: false }),
+                    timeout
+                ]);
+
                 // Başlangıçta sessize al (PTT)
                 localStream.getAudioTracks()[0].enabled = false;
                 showToast('Mikrofon hazır! Bas-Konuş kullanabilirsiniz.', 'success');
@@ -2015,7 +2029,8 @@
 
             } catch (err) {
                 console.error('Audio init error:', err);
-                showToast('Mikrofon izni verilmedi! Sadece dinleyebilirsiniz.', 'warning');
+                showToast('Mikrofon başlatılamadı (İzin verilmedi veya donanım yok). Oyun sessiz devam ediyor.', 'warning');
+                // Proceed without MIC
             }
         }
 
