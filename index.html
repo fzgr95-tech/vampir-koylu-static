@@ -493,6 +493,8 @@
                 <input type="number" id="vampire-count-input" value="1" min="1" max="3" placeholder="Vampir Sayısı">
                 <input type="number" id="duration-input" value="60" min="30" max="180"
                     placeholder="Tartışma Süresi (sn)">
+                <input type="number" id="vote-duration-input" value="30" min="10" max="120"
+                    placeholder="Oylama Süresi (sn)">
                 <button class="btn btn-action" onclick="createRoom()">Oluştur</button>
                 <button class="btn btn-text" onclick="hideCreateRoom()">İptal</button>
             </div>
@@ -612,6 +614,7 @@
             players: {},
             vampireCount: 1,
             duration: 60,
+            voteDuration: 30,
             roomName: '',
             password: '',
             nightActions: {},
@@ -898,6 +901,7 @@
             gameState.password = document.getElementById('room-password-input').value.trim();
             gameState.vampireCount = parseInt(document.getElementById('vampire-count-input').value);
             gameState.duration = parseInt(document.getElementById('duration-input').value);
+            gameState.voteDuration = parseInt(document.getElementById('vote-duration-input').value) || 30;
 
             try {
                 // If I was manager, stop being manager
@@ -1002,10 +1006,10 @@
 
         function startVotingPhase() {
             gameState.phase = 'voting';
-            gameState.countdown = 30;
+            gameState.countdown = gameState.voteDuration || 30;
             Object.values(gameState.players).forEach(p => p.vote = null);
             broadcastState();
-            broadcast({ type: 'notification', message: '⚠️ OYLAMA BAŞLADI! 30 saniyeniz var!', urgency: 'high' });
+            broadcast({ type: 'notification', message: `⚠️ OYLAMA BAŞLADI! ${gameState.countdown} saniyeniz var!`, urgency: 'high' });
             startCountdown(() => resolveVotes());
         }
 
