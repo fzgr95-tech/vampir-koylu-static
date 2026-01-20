@@ -470,7 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#d400ff">v1.9 (ROOM
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff00d4">v1.9.1 (ROLE
                     FIX)</small>
             </h1>
 
@@ -676,7 +676,8 @@
             </div>
 
             <!-- Version Footer -->
-            <div style="text-align: center; margin-top: 10px; opacity: 0.5; font-size: 0.8rem;">v1.3</div>
+            <!-- Version Footer -->
+            <div style="text-align: center; margin-top: 10px; opacity: 0.5; font-size: 0.8rem;"></div>
         </div>
 
         <!-- OYUN SONU EKRANI -->
@@ -1855,7 +1856,7 @@
                 witch: '✨',
                 sheriff: '⭐'
             };
-            return map[role] || '❓';
+            return map[role] || '👁️'; // Default to Spectator Eye instead of ?
         }
 
         function backToHome() {
@@ -2200,7 +2201,7 @@
                 'witch': 'BÜYÜCÜ',
                 'sheriff': 'ŞERİF'
             };
-            return map[role] || (role ? role.toUpperCase() : 'BELİRSİZ');
+            return map[role] || (role ? role.toUpperCase() : 'İZLEYİCİ');
         }
 
         // Start App
