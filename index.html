@@ -470,8 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ffff">v1.8.1 (FULL
-                    SÜRÜM)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ff00">v1.8.2 (FİXED)</small>
             </h1>
 
             <div class="form-section">
@@ -1345,7 +1344,6 @@
             gameState.phase = 'voting';
             gameState.countdown = gameState.voteDuration || 30;
             Object.values(gameState.players).forEach(p => p.vote = null);
-            broadcastState();
             broadcastState();
             broadcast({ type: 'notification', message: `⚠️ OYLAMA BAŞLADI! ${gameState.countdown} saniyeniz var!`, urgency: 'high' });
 
