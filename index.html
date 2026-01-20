@@ -640,6 +640,8 @@
                     <button class="btn btn-primary" onclick="sendGameChat()">➤</button>
                 </div>
             </div>
+            <!-- Version Footer -->
+            <div style="text-align: center; margin-top: 10px; opacity: 0.5; font-size: 0.8rem;">v1.3</div>
         </div>
 
         <!-- OYUN SONU EKRANI -->
@@ -1130,8 +1132,8 @@
                 hostConnection = peer.connect(roomCode, { reliable: true, serialization: 'json' });
 
                 const connectionTimeout = setTimeout(() => {
-                    showToast('Bağlantı zaman aşımı! Oda sahibi çevrimdışı olabilir.', 'error');
-                }, 5000);
+                    showToast('Bağlantı zaman aşımı! (15sn) Modem/Ağ engelliyor olabilir.', 'error');
+                }, 15000);
 
                 hostConnection.on('open', () => {
                     clearTimeout(connectionTimeout);
