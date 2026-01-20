@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff00ff">v2.0.5 (PC HOTFIX
-                    2)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff4500">v2.0.6 (START
+                    FIX)</small>
             </h1>
 
             <div class="form-section">
@@ -1107,7 +1107,9 @@
                     break;
 
                 case 'game_start':
+                    if (data.state) gameState = data.state;
                     showScreen('game');
+                    updateUI();
                     if (gameState.voiceEnabled) joinVoiceChat(); // Oyuncular da katılsın
                     break;
 
@@ -1370,7 +1372,7 @@
                 gameState.players[id].vote = null;
             });
 
-            broadcast({ type: 'game_start' });
+            broadcast({ type: 'game_start', state: gameState });
             showScreen('game');
             if (gameState.voiceEnabled) joinVoiceChat(); // Host da katılsın
             startDayPhase();
