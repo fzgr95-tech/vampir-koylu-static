@@ -746,6 +746,14 @@
         function showScreen(name) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('screen-' + name).classList.add('active');
+
+            // Voice Chat UI Visibility
+            const voiceControls = document.getElementById('voice-chat-controls');
+            if (name === 'game' && gameState.voiceEnabled) {
+                voiceControls.classList.remove('hidden');
+            } else {
+                voiceControls.classList.add('hidden');
+            }
         }
 
         function showToast(message, type = 'info') {
