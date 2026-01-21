@@ -470,7 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ffd700">v2.2.2 (HOST
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ff00">v2.2.3 (CONNECTION
                     FIX)</small>
             </h1>
 
@@ -957,14 +957,25 @@
         }
 
         function handleNewConnection(conn) {
-            conn.on('open', () => {
+            // Setup connection handlers
+            const setupConnection = () => {
                 connections[conn.peer] = conn;
+                console.log('Connection registered:', conn.peer);
                 conn.on('data', (data) => {
+                    console.log('Data from', conn.peer, ':', data.type);
                     if (isLobbyManager) handleLobbyMessage(conn, data);
                     else handleMessage(conn.peer, data);
                 });
                 conn.on('close', () => handleDisconnect(conn.peer));
-            });
+            };
+
+            // CRITICAL: Check if connection is already open!
+            // PeerJS sometimes delivers connections that are already open
+            if (conn.open) {
+                setupConnection();
+            } else {
+                conn.on('open', setupConnection);
+            }
         }
 
         function handleDisconnect(peerId) {
