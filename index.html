@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00d4ff">v2.9.1
-                    (COLLAPSIBLE)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00d4ff">v2.9.2 (TOGGLE
+                    MASTER)</small>
             </h1>
 
             <div class="form-section">
@@ -521,46 +521,71 @@
                     </label>
                 </div>
 
-                <!-- Özel Roller (Collapsible) -->
-                <div style="margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                <!-- Özel Roller (Master Toggle System) -->
+                <div
+                    style="margin: 15px 0; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
                     <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <label style="display: flex; align-items: center; cursor: pointer; gap: 10px;">
-                            <!-- MASTER TOGGLE -->
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <span style="font-weight: bold; font-size: 1.1rem; color: var(--primary-color);">🎭 Özel
+                            Roller</span>
+                        <!-- MASTER TOGGLE -->
+                        <label style="cursor: pointer; display: flex; align-items: center;">
                             <div class="toggle-switch">
                                 <input type="checkbox" id="toggle-special-roles" checked
-                                    onchange="document.getElementById('special-roles-content').classList.toggle('hidden')">
+                                    onchange="document.getElementById('special-roles-grid').classList.toggle('hidden');">
                                 <span class="slider"></span>
                             </div>
-                            <span style="font-weight: bold; font-size: 1rem;">🎭 Özel Roller</span>
                         </label>
                     </div>
 
-                    <div id="special-roles-content"
-                        style="display: flex; flex-direction: column; gap: 8px; padding-left: 5px;">
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" id="role-doctor" checked style="width: auto;">
-                            <span>💉 Doktor (Geceleri korur)</span>
+                    <div id="special-roles-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <label
+                            style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px;">
+                            <div class="toggle-switch small">
+                                <input type="checkbox" id="role-doctor" checked>
+                                <span class="slider"></span>
+                            </div>
+                            <span style="font-size: 0.9rem;">💉 Doktor</span>
                         </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" id="role-seer" checked style="width: auto;">
-                            <span>🔮 Medyum (Geceleri sorgular)</span>
+                        <label
+                            style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px;">
+                            <div class="toggle-switch small">
+                                <input type="checkbox" id="role-seer" checked>
+                                <span class="slider"></span>
+                            </div>
+                            <span style="font-size: 0.9rem;">🔮 Medyum</span>
                         </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" id="role-traitor" style="width: auto;">
-                            <span>🐀 Köstebek (Vampirlerle çalışır)</span>
+                        <label
+                            style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px;">
+                            <div class="toggle-switch small">
+                                <input type="checkbox" id="role-traitor">
+                                <span class="slider"></span>
+                            </div>
+                            <span style="font-size: 0.9rem;">🐀 Köstebek</span>
                         </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" id="role-hunter" style="width: auto;">
-                            <span>🏹 Avcı (Ölürken birini götürür)</span>
+                        <label
+                            style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px;">
+                            <div class="toggle-switch small">
+                                <input type="checkbox" id="role-hunter">
+                                <span class="slider"></span>
+                            </div>
+                            <span style="font-size: 0.9rem;">🏹 Avcı</span>
                         </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" id="role-witch" style="width: auto;">
-                            <span>✨ Büyücü (1x kurtarma + 1x zehir)</span>
+                        <label
+                            style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px;">
+                            <div class="toggle-switch small">
+                                <input type="checkbox" id="role-witch">
+                                <span class="slider"></span>
+                            </div>
+                            <span style="font-size: 0.9rem;">✨ Büyücü</span>
                         </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" id="role-sheriff" style="width: auto;">
-                            <span>⭐ Şerif (Oyu 2 sayılır)</span>
+                        <label
+                            style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px;">
+                            <div class="toggle-switch small">
+                                <input type="checkbox" id="role-sheriff">
+                                <span class="slider"></span>
+                            </div>
+                            <span style="font-size: 0.9rem;">⭐ Şerif</span>
                         </label>
                     </div>
                 </div>
