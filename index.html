@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff4500">v2.2.8 (RACE
-                    FIX)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff00ff">v2.3.0 (DYNAMIC
+                    UPDATE)</small>
             </h1>
 
             <div class="form-section">
@@ -503,6 +503,19 @@
                     placeholder="Tartışma Süresi (sn)">
                 <input type="number" id="vote-duration-input" value="30" min="10" max="120"
                     placeholder="Oylama Süresi (sn)">
+
+                <!-- Oyun Ayarları -->
+                <div style="margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <p style="margin-bottom: 10px; font-weight: bold;">⚙️ Oyun Dinamiği:</p>
+                    <label style="display: block; margin-bottom: 8px;">
+                        <span style="display:block; margin-bottom:5px; font-size:0.9rem;">🩸 Vampir Saldırısı:</span>
+                        <select id="kill-frequency-input"
+                            style="width: 100%; padding: 8px; border-radius: 5px; border: none;">
+                            <option value="every">Her Gece (Klasik)</option>
+                            <option value="alternate">Alternatif (1 Gece Av, 1 Gece Boş)</option>
+                        </select>
+                    </label>
+                </div>
 
                 <!-- Rol Seçimi -->
                 <div style="margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
@@ -1112,7 +1125,9 @@
                 case 'vote':
                     if (isHost) {
                         gameState.players[fromPeerId].vote = data.target;
-                        checkAllVoted();
+                        // NEW FEATURE: Changeable votes - do not auto-resolve
+                        // checkAllVoted();
+                        broadcastState(); // Show updated vote to everyone
                     }
                     break;
 
@@ -1431,7 +1446,7 @@
 
                 hostConnection.on('error', (err) => {
                     clearTimeout(connectionTimeout);
-                    console.error(err);
+                    console.error('Host connection error:', err);
                     showToast('Bağlantı hatası!', 'error');
                 });
 
@@ -1446,37 +1461,72 @@
 
         function startGame() {
             if (!isHost) return;
-            const pIds = Object.keys(gameState.players);
-            if (pIds.length < gameState.vampireCount + 2) return showToast('Yetersiz oyuncu!', 'error');
+            const players = Object.keys(gameState.players);
+            if (players.length < 3) {
+                showToast('En az 3 oyuncu gerekli!', 'error');
+                return;
+            }
 
-            // Roles - Dinamik rol dağıtımı
-            let roles = [];
+            // Game Settings
+            gameState.phase = 'day';
+            gameState.day = 1;
+            gameState.countdown = 10; // First day intro
+            gameState.vampireCount = parseInt(document.getElementById('vampire-count-input').value) || 1;
+            gameState.voteDuration = parseInt(document.getElementById('vote-duration-input').value) || 30;
+            gameState.killFrequency = document.getElementById('kill-frequency-input').value || 'every'; // New Setting
+
+            // Roles
+            const roles = [];
             for (let i = 0; i < gameState.vampireCount; i++) roles.push('vampire');
+            if (document.getElementById('role-doctor').checked) roles.push('doctor');
+            if (document.getElementById('role-seer').checked) roles.push('seer');
+            if (document.getElementById('role-traitor').checked) roles.push('traitor');
+            if (document.getElementById('role-hunter').checked) roles.push('hunter');
+            if (document.getElementById('role-witch').checked) roles.push('witch');
+            if (document.getElementById('role-sheriff').checked) roles.push('sheriff');
 
-            // Sadece seçili roller eklenir
-            if (gameState.roles.doctor) roles.push('doctor');
-            if (gameState.roles.seer) roles.push('seer');
-            if (gameState.roles.traitor) roles.push('traitor');
-            if (gameState.roles.hunter) roles.push('hunter');
-            if (gameState.roles.witch) roles.push('witch');
-            if (gameState.roles.sheriff) roles.push('sheriff');
+            // Fill rest with Villagers
+            while (roles.length < players.length) roles.push('villager');
 
-            // Kalan herkes köylü
-            while (roles.length < pIds.length) roles.push('villager');
+            // Shuffle Roles (Fisher-Yates) - NEW FEATURE: Randomize Roles
+            for (let i = roles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [roles[i], roles[j]] = [roles[j], roles[i]];
+            }
 
-            // Shuffle
-            roles = roles.sort(() => Math.random() - 0.5);
+            // Assign Roles
+            // NEW FEATURE: Shuffle Players Array to ensure position randomness too
+            const shuffledPlayerIds = [...players];
+            for (let i = shuffledPlayerIds.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledPlayerIds[i], shuffledPlayerIds[j]] = [shuffledPlayerIds[j], shuffledPlayerIds[i]];
+            }
 
-            pIds.forEach((id, i) => {
-                gameState.players[id].role = roles[i];
+            shuffledPlayerIds.forEach((id, index) => {
+                gameState.players[id].role = roles[index];
                 gameState.players[id].isAlive = true;
                 gameState.players[id].vote = null;
             });
 
+            // Alliance System
+            gameState.allianceEnabled = document.getElementById('enable-alliance').checked;
+            gameState.alliances = {};
+            gameState.nextAllianceId = 1;
+
+            broadcastState();
+            // Send game start signal with state to ensure sync
             broadcast({ type: 'game_start', state: gameState });
-            showScreen('game');
-            if (gameState.voiceEnabled) joinVoiceChat(); // Host da katılsın
-            startDayPhase();
+            updateUI();
+
+            // Send explicit role info to each player (just in case)
+            Object.entries(gameState.players).forEach(([pid, p]) => {
+                const conn = connections[pid];
+                if (conn && conn.open) {
+                    conn.send({ type: 'role_assign', role: p.role });
+                }
+            });
+
+            startCountdown(() => startNightPhase());
         }
 
         function startDayPhase() {
@@ -1579,13 +1629,16 @@
 
             if (isHost) {
                 me.vote = targetId;
-                checkAllVoted();
+                // NEW FEATURE: Votes are changeable, so we DO NOT checkAllVoted()
+                // checkAllVoted(); 
+                broadcastState(); // Broadcast the new vote instantly
             } else {
                 sendToHost({ type: 'vote', target: targetId });
             }
-            showToast('Oy verildi!');
-            // Disable buttons
-            document.querySelectorAll('.vote-card').forEach(b => b.style.pointerEvents = 'none');
+            showToast('Oy güncellendi!');
+
+            // NEW FEATURE: Do NOT disable buttons. Allow changing vote.
+            // document.querySelectorAll('.vote-card').forEach(b => b.style.pointerEvents = 'none');
         }
 
         function checkAllVoted() {
