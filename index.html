@@ -470,7 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ff88">v2.1.0 (NETWORK
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ccff">v2.1.1 (JOIN
                     FIX)</small>
             </h1>
 
@@ -1305,32 +1305,70 @@
                 hostConnection = peer.connect(roomCode, { reliable: true, serialization: 'json' });
 
                 const connectionTimeout = setTimeout(async () => {
-                    showToast('İlk deneme başarısız... Alternatif sunucu deneniyor (Fallback)...', 'info');
+                    showToast('İlk deneme başarısız... Yeniden deneniyor...', 'info');
 
-                    // Fallback Strategy: Destroy and retry with Minimal Config
+                    // Fallback Strategy: Destroy and retry with FULL config including TURN
                     if (peer) peer.destroy();
 
                     try {
-                        // Minimal Config (Default STUN only)
-                        peer = new Peer({ debug: 2 });
-                        await new Promise(r => peer.on('open', r));
+                        // FULL Config with TURN servers for NAT relay
+                        const turnConfig = {
+                            config: {
+                                iceServers: [
+                                    { urls: 'stun:stun.l.google.com:19302' },
+                                    { urls: 'stun:global.stun.twilio.com:3478' },
+                                    {
+                                        urls: 'turn:openrelay.metered.ca:80',
+                                        username: 'openrelayproject',
+                                        credential: 'openrelayproject'
+                                    },
+                                    {
+                                        urls: 'turn:openrelay.metered.ca:443',
+                                        username: 'openrelayproject',
+                                        credential: 'openrelayproject'
+                                    },
+                                    {
+                                        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                                        username: 'openrelayproject',
+                                        credential: 'openrelayproject'
+                                    }
+                                ],
+                                iceCandidatePoolSize: 10
+                            },
+                            debug: 2
+                        };
+                        peer = new Peer(turnConfig);
+                        await new Promise((resolve, reject) => {
+                            const t = setTimeout(() => reject(new Error('Fallback timeout')), 15000);
+                            peer.on('open', () => { clearTimeout(t); resolve(); });
+                            peer.on('error', (e) => { clearTimeout(t); reject(e); });
+                        });
 
                         hostConnection = peer.connect(roomCode, { reliable: true, serialization: 'json' });
 
-                        // New timeout for fallback
-                        setTimeout(() => showToast('Bağlantı kurulamadı! Lütfen "Mobil Veri" ile deneyin.', 'error'), 10000);
+                        // Final timeout for fallback
+                        const finalTimeout = setTimeout(() => {
+                            showToast('Bağlantı kurulamadı! Host çevrimiçi değil veya oda kapatılmış olabilir.', 'error');
+                        }, 15000);
 
                         hostConnection.on('open', () => {
+                            clearTimeout(finalTimeout);
                             connections[roomCode] = hostConnection;
                             hostConnection.send({ type: 'join', username: myUsername, password: password });
                             hostConnection.on('data', d => handleMessage(roomCode, d));
                             document.getElementById('room-code-display').innerText = roomCode;
                             showScreen('lobby');
-                            showToast('Alternatif bağlantı başarılı! (v1.4)', 'success');
+                            showToast('Bağlandı! (TURN Relay)', 'success');
+                        });
+
+                        hostConnection.on('error', () => {
+                            clearTimeout(finalTimeout);
+                            showToast('Bu oda bulunamadı veya kapatılmış.', 'error');
                         });
 
                     } catch (fallbackErr) {
-                        console.error(fallbackErr);
+                        console.error('Fallback failed:', fallbackErr);
+                        showToast('Bağlantı tamamen başarısız. Host çevrimiçi mi kontrol edin.', 'error');
                     }
                 }, 10000); // 10s timeout for first attempt
 
