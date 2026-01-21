@@ -470,7 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#008080">v2.2.7 (ROUTING
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff4500">v2.2.8 (RACE
                     FIX)</small>
             </h1>
 
@@ -893,6 +893,7 @@
         }
 
         async function becomeLobbyManager() {
+            if (isHost) return; // CRITICAL: Don't become lobby manager if running a game!
             if (isLobbyManager) return;
             if (peer) peer.destroy();
 
