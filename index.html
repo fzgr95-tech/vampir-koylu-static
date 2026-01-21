@@ -470,8 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ffff">v2.2.4 (SYNC
-                    FIX)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff8800">v2.2.5 (DEBUG)</small>
             </h1>
 
             <div class="form-section">
@@ -987,8 +986,20 @@
         }
 
         function broadcast(data) {
-            Object.values(connections).forEach(conn => {
-                if (conn.open) conn.send(data);
+            const connKeys = Object.keys(connections);
+            console.log('Broadcasting', data.type, 'to', connKeys.length, 'connections:', connKeys);
+            Object.entries(connections).forEach(([peerId, conn]) => {
+                console.log('  -> Sending to', peerId, 'open:', conn.open);
+                if (conn.open) {
+                    try {
+                        conn.send(data);
+                        console.log('  -> Sent successfully to', peerId);
+                    } catch (e) {
+                        console.error('  -> Send failed to', peerId, e);
+                    }
+                } else {
+                    console.log('  -> Skipped (not open):', peerId);
+                }
             });
         }
 
