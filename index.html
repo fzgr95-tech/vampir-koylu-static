@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#4ade80">v2.6.0 (ROLE
-                    LIST)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#a855f7">v2.7.0
+                    (PACIFIST)</small>
             </h1>
 
             <div class="form-section">
@@ -513,6 +513,7 @@
                             style="width: 100%; padding: 8px; border-radius: 5px; border: none;">
                             <option value="every">Her Gece (Klasik)</option>
                             <option value="alternate">Alternatif (1 Gece Av, 1 Gece Boş)</option>
+                            <option value="none">Saldırı Yok (Sadece Eşitlikte)</option>
                         </select>
                     </label>
                 </div>
@@ -1630,6 +1631,28 @@
             gameState.phase = 'night';
             gameState.nightActions = {};
             gameState.countdown = 30;
+
+            // DYNAMIC KILL FREQUENCY & NO ATTACK MODE
+            // 'every' -> Always True
+            // 'alternate' -> Odd nights (1, 3..) True, Even nights False
+            // 'none' -> Always False (Only Tie-Breaker)
+            if (gameState.killFrequency === 'none') {
+                gameState.vampireCanKill = false;
+            } else if (gameState.killFrequency === 'alternate') {
+                gameState.vampireCanKill = (gameState.day % 2 !== 0); // Day 1=Kill, Day 2=No
+            } else {
+                gameState.vampireCanKill = true;
+            }
+
+            // Notification for "No Kill" nights
+            if (gameState.killFrequency !== 'every') {
+                if (gameState.vampireCanKill) {
+                    broadcast({ type: 'notification', message: '🩸 Bu gece Vampirler saldırıya kalkıyor!', urgency: 'high' });
+                } else {
+                    broadcast({ type: 'notification', message: '🕊️ Bu gece saldırı yok. (Sessiz Gece)', urgency: 'medium' });
+                }
+            }
+
             broadcastState();
             startCountdown(() => resolveNight());
         }
