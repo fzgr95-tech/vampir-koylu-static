@@ -470,7 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ccff">v2.1.1 (JOIN
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff3333">v2.2.0 (CRITICAL
                     FIX)</small>
             </h1>
 
@@ -1170,14 +1170,15 @@
                 // Create Room UI immediately
                 showToast('Oda oluşturuluyor...', 'info');
 
-                // Initialize Peer with critical timeout (essential for ID)
+                // CRITICAL: Host must register with roomCode as their Peer ID!
+                // This allows clients to connect via peer.connect(roomCode)
                 try {
-                    if (!peer || peer.disconnected) await initPeer();
+                    if (peer) peer.destroy(); // Always recreate to ensure correct ID
+                    await initPeer(roomCode); // <-- THE FIX: Use roomCode as Peer ID!
                 } catch (e) {
-                    console.error('PeerJS init failed, using local fallback:', e);
-                    // FALLBACK: Generate local-only ID if PeerJS signaling is blocked
-                    myPeerId = 'LOCAL-' + Math.random().toString(36).substring(2, 10);
-                    showToast('Bağlantı sorunu! Yerel mod aktif.', 'warning');
+                    console.error('PeerJS init failed:', e);
+                    showToast('Sunucu bağlantı hatası. Lütfen tekrar deneyin.', 'error');
+                    return; // Cannot proceed without valid peer
                 }
 
                 // SETUP GAME STATE
