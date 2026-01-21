@@ -470,7 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ff00">v2.2.3 (CONNECTION
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ffff">v2.2.4 (SYNC
                     FIX)</small>
             </h1>
 
@@ -1390,9 +1390,17 @@
                 hostConnection.on('open', () => {
                     clearTimeout(connectionTimeout);
                     connections[roomCode] = hostConnection;
+
+                    // CRITICAL: Set up data listener BEFORE sending join!
+                    // Host responds immediately, we must be ready to receive
+                    hostConnection.on('data', d => {
+                        console.log('Received from host:', d.type);
+                        handleMessage(roomCode, d);
+                    });
+
+                    // NOW send join after listener is ready
                     hostConnection.send({ type: 'join', username: myUsername, password: password });
 
-                    hostConnection.on('data', d => handleMessage(roomCode, d));
                     document.getElementById('room-code-display').innerText = roomCode;
                     showScreen('lobby');
                     updateUI(); // Ensure lobby players are rendered
