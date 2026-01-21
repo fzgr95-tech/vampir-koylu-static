@@ -470,7 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff3333">v2.2.0 (CRITICAL
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#cc66ff">v2.2.1 (LOBBY
                     FIX)</small>
             </h1>
 
@@ -1381,6 +1381,7 @@
                     hostConnection.on('data', d => handleMessage(roomCode, d));
                     document.getElementById('room-code-display').innerText = roomCode;
                     showScreen('lobby');
+                    updateUI(); // Ensure lobby players are rendered
                     showToast('Bağlandı!', 'success');
                 });
 
