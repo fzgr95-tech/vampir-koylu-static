@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#a855f7">v2.7.0
-                    (PACIFIST)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00d4ff">v2.8.0 (UI
+                    POLISH)</small>
             </h1>
 
             <div class="form-section">
@@ -504,22 +504,24 @@
                 <input type="number" id="vote-duration-input" value="30" min="10" max="120"
                     placeholder="Oylama Süresi (sn)">
 
-                <!-- Oyun Ayarları -->
+                <!-- Rol Seçimi & Oyun Dinamiği -->
                 <div style="margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
-                    <p style="margin-bottom: 10px; font-weight: bold;">⚙️ Oyun Dinamiği:</p>
-                    <label style="display: block; margin-bottom: 8px;">
-                        <span style="display:block; margin-bottom:5px; font-size:0.9rem;">🩸 Vampir Saldırısı:</span>
+                    <!-- MOVED: Vampir Saldırısı Ayarı -->
+                    <label
+                        style="display: block; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
+                        <span
+                            style="display:block; margin-bottom:5px; font-size:0.9rem; color:var(--secondary-color); font-weight:bold;">🩸
+                            Vampir Saldırısı:</span>
                         <select id="kill-frequency-input"
-                            style="width: 100%; padding: 8px; border-radius: 5px; border: none;">
-                            <option value="every">Her Gece (Klasik)</option>
-                            <option value="alternate">Alternatif (1 Gece Av, 1 Gece Boş)</option>
-                            <option value="none">Saldırı Yok (Sadece Eşitlikte)</option>
+                            style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.2); background: #222; color: white;">
+                            <option value="every" style="background:#222; color:white;">Her Gece (Klasik)</option>
+                            <option value="alternate" style="background:#222; color:white;">Alternatif (1 Gece Av, 1
+                                Gece Boş)</option>
+                            <option value="none" style="background:#222; color:white;">Saldırı Yok (Sadece Eşitlikte)
+                            </option>
                         </select>
                     </label>
-                </div>
 
-                <!-- Rol Seçimi -->
-                <div style="margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
                     <p style="margin-bottom: 10px; font-weight: bold;">🎭 Özel Roller:</p>
                     <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;">
                         <input type="checkbox" id="role-doctor" checked style="width: auto;">
