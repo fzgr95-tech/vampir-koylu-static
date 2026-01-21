@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ffaa00">v2.4.1 (UI
-                    HOTFIX)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff3333">v2.5.0 (TIE
+                    BREAKER)</small>
             </h1>
 
             <div class="form-section">
@@ -1165,6 +1165,12 @@
                     }
                     break;
 
+                case 'vampire_tie_vote':
+                    if (isHost && gameState.phase === 'vampire_decision') {
+                        executeVoteDeath(data.target);
+                    }
+                    break;
+
                 case 'haunt':
                     if (isHost) broadcast({ type: 'haunt_effect', effect: data.effect });
                     break;
@@ -1677,6 +1683,39 @@
             if (voted.length >= alive.length) resolveVotes();
         }
 
+        function executeVoteDeath(victimId) {
+            clearInterval(countdownInterval); // Ensure timer stops
+            // Logic mirrors resolveVotes end block
+            const v = gameState.players[victimId];
+            if (!v) return;
+
+            v.isAlive = false;
+            killAllianceMembers(victimId);
+
+            let msg = `⚖️ Vampirlerin Kararı: ${v.name} asıldı! Rolü: ${getRoleEmoji(v.role)} ${v.role.toUpperCase()}`;
+            document.getElementById('game-message').innerText = msg;
+
+            let hunterTriggered = false;
+            if (v.role === 'hunter') {
+                hunterTriggered = true;
+            }
+
+            broadcastState();
+
+            // Handle Hunter / End Game / Night
+            if (hunterTriggered && victimId === myPeerId) {
+                showHunterRevenge();
+            } else if (!checkWin()) {
+                setTimeout(() => {
+                    // Reset tie-breaker state properly before night
+                    gameState.phase = 'night';
+                    gameState.tiedVictims = null;
+                    gameState.countdown = 0;
+                    startNightPhase();
+                }, 4000);
+            }
+        }
+
         function resolveVotes() {
             clearInterval(countdownInterval);
             const votes = {};
@@ -1697,16 +1736,35 @@
                 else if (c === max) victims.push(id);
             });
 
-            // NEW FEATURE: Vampire Tie-Breaker
-            // If there is a tie, check if any Vampire voted for one of the victims.
+            // NEW FEATURE: Vampire Decision Phase (Interactive Tie-Breaker)
+            // If there is a tie, Vampires get to CHOOSE who hangs.
             if (victims.length > 1) {
-                const vampires = Object.values(gameState.players).filter(p => p.isAlive && p.role === 'vampire');
-                // Find first victim that has a vampire vote
-                const vampireChoice = victims.find(vID => vampires.some(vam => vam.vote === vID));
+                // EXCEPTION regarding Chaos Event 'double': If it's double trouble, keep original logic?
+                // The user request didn't specify interaction with Double Trouble. 
+                // Assuming "Eşitlik durumunda vampir seçsin" overrides unless specific chaos.
+                // But Double Trouble explicitly kills TWO people on tie. Implementation Plan didn't cover exclude.
+                // Let's check Chaos Event.
+                if (gameState.chaosEvent?.id === 'double' && victims.length === 2) {
+                    // Proceed to double kill (logic below)
+                } else {
+                    // Switch to Decision Phase
+                    gameState.phase = 'vampire_decision';
+                    gameState.tiedVictims = victims;
+                    gameState.countdown = 15; // 15 seconds to decide
 
-                if (vampireChoice) {
-                    victims = [vampireChoice]; // Tie broken by Vampire power!
-                    // Optional: Notification? "Vampirlerin karanlık etkisiyle eşitlik bozuldu..."
+                    broadcastState();
+                    broadcast({ type: 'notification', message: '⚖️ Eşitlik! Vampirler karar veriyor...', urgency: 'medium' });
+
+                    startCountdown(() => {
+                        // Timeout: Random or None. Defaulting to No One died (Standard).
+                        // Or random? "Oylama eşit ve vampir seçmedi -> Kimse ölmez".
+                        gameState.phase = 'night';
+                        gameState.tiedVictims = null;
+                        document.getElementById('game-message').innerText = '⏳ Karar verilemedi. Kimse asılmadı.';
+                        broadcastState();
+                        startNightPhase(); // Skip hanging
+                    });
+                    return; // PAUSE RESOLUTION HERE
                 }
             }
 
@@ -1983,6 +2041,43 @@
             const nightPanel = document.getElementById('night-action-panel');
             const nightRoles = ['vampire', 'doctor', 'seer', 'witch'];
             const myAction = gameState.nightActions[myPeerId];
+
+            // Vampire Decision Phase UI (Interactive Tie-Breaker)
+            if (gameState.phase === 'vampire_decision') {
+                const nightPanel = document.getElementById('night-action-panel');
+
+                if (me.role === 'vampire') {
+                    nightPanel.classList.remove('hidden');
+                    document.getElementById('night-targets').innerHTML = '';
+                    document.getElementById('night-action-title').innerText = '⚖️ EŞİTLİK!';
+                    document.getElementById('night-action-desc').innerText = 'KİM ASILSIN? Seçim yap:';
+
+                    if (gameState.tiedVictims) {
+                        gameState.tiedVictims.forEach(vId => {
+                            const p = gameState.players[vId];
+                            const btn = document.createElement('div');
+                            btn.className = 'vote-card';
+                            btn.innerHTML = p.name;
+                            btn.style.padding = '15px';
+                            btn.style.border = '2px solid red';
+                            btn.onclick = () => {
+                                if (isHost) {
+                                    executeVoteDeath(vId);
+                                } else {
+                                    sendToHost({ type: 'vampire_tie_vote', target: vId });
+                                }
+                            };
+                            document.getElementById('night-targets').appendChild(btn);
+                        });
+                    }
+                } else {
+                    // Show banner to others
+                    const banner = document.getElementById('chaos-banner');
+                    banner.innerText = '⚖️ Eşitlik! Vampirler karar veriyor...';
+                    banner.style.display = 'block';
+                }
+                return; // Stop standard UI update
+            }
 
             if (gameState.phase === 'night' && me.isAlive && nightRoles.includes(me.role)) {
                 // FIXED: Removed '!myAction' to allow changing selection
