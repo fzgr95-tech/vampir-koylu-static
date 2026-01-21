@@ -470,7 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff8800">v2.2.5 (DEBUG)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff00ff">v2.2.6 (TRACE)</small>
             </h1>
 
             <div class="form-section">
@@ -1012,9 +1012,12 @@
         function handleMessage(fromPeerId, data) {
             switch (data.type) {
                 case 'join':
+                    console.log('JOIN received from:', fromPeerId, 'isHost:', isHost);
                     if (isHost) {
+                        console.log('Processing join as Host...');
                         // Şifre Kontrolü
                         if (gameState.password && gameState.password !== data.password) {
+                            console.log('Password mismatch, rejecting...');
                             const conn = connections[fromPeerId];
                             if (conn) {
                                 conn.send({ type: 'chat', sender: 'SİSTEM', message: 'Hatalı Şifre! Bağlantı kesiliyor...', chatType: 'lobby' });
@@ -1023,13 +1026,18 @@
                             return;
                         }
 
+                        console.log('Adding player:', data.username);
                         gameState.players[fromPeerId] = {
                             name: data.username,
                             role: null,
                             isAlive: true,
                             vote: null
                         };
+                        console.log('Current players:', Object.keys(gameState.players));
+                        console.log('Calling broadcastState...');
                         broadcastState();
+                    } else {
+                        console.log('NOT HOST, ignoring join message');
                     }
                     break;
 
