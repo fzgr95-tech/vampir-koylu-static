@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00d4ff">v2.9.0 (UI
-                    OVERHAUL)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00d4ff">v2.9.1
+                    (COLLAPSIBLE)</small>
             </h1>
 
             <div class="form-section">
@@ -504,13 +504,12 @@
                 <input type="number" id="vote-duration-input" value="30" min="10" max="120"
                     placeholder="Oylama Süresi (sn)">
 
-                <!-- Rol Seçimi & Oyun Dinamiği -->
+                <!-- Oyun Dinamiği -->
                 <div style="margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
-                    <!-- MOVED: Vampir Saldırısı Ayarı -->
-                    <label
-                        style="display: block; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
-                        <span
-                            style="display:block; margin-bottom:8px; font-size:0.9rem; color:var(--secondary-color); font-weight:bold;">🩸
+                    <p style="margin-bottom: 15px; font-weight: bold;">⚙️ Oyun Dinamiği:</p>
+
+                    <label style="display: block; margin-bottom: 5px;">
+                        <span style="display:block; margin-bottom:5px; font-size:0.9rem; color:var(--text-color);">🩸
                             Vampir Saldırısı:</span>
                         <select id="kill-frequency-input"
                             style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: #1a1a2e; color: white; font-family: inherit;">
@@ -520,86 +519,74 @@
                             <option value="none" style="background:#1a1a2e;">Saldırı Yok (Sadece Eşitlikte)</option>
                         </select>
                     </label>
+                </div>
 
-                    <p
-                        style="margin-bottom: 15px; font-weight: bold; border-left: 3px solid var(--primary-color); padding-left: 10px;">
-                        🎭 Özel Roller:</p>
-
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <label style="display: flex; align-items: center; cursor: pointer;">
+                <!-- Özel Roller (Collapsible) -->
+                <div style="margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; cursor: pointer; gap: 10px;">
+                            <!-- MASTER TOGGLE -->
                             <div class="toggle-switch">
-                                <input type="checkbox" id="role-doctor" checked>
+                                <input type="checkbox" id="toggle-special-roles" checked
+                                    onchange="document.getElementById('special-roles-content').classList.toggle('hidden')">
                                 <span class="slider"></span>
                             </div>
+                            <span style="font-weight: bold; font-size: 1rem;">🎭 Özel Roller</span>
+                        </label>
+                    </div>
+
+                    <div id="special-roles-content"
+                        style="display: flex; flex-direction: column; gap: 8px; padding-left: 5px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="role-doctor" checked style="width: auto;">
                             <span>💉 Doktor (Geceleri korur)</span>
                         </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <div class="toggle-switch">
-                                <input type="checkbox" id="role-seer" checked>
-                                <span class="slider"></span>
-                            </div>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="role-seer" checked style="width: auto;">
                             <span>🔮 Medyum (Geceleri sorgular)</span>
                         </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <div class="toggle-switch">
-                                <input type="checkbox" id="role-traitor">
-                                <span class="slider"></span>
-                            </div>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="role-traitor" style="width: auto;">
                             <span>🐀 Köstebek (Vampirlerle çalışır)</span>
                         </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <div class="toggle-switch">
-                                <input type="checkbox" id="role-hunter">
-                                <span class="slider"></span>
-                            </div>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="role-hunter" style="width: auto;">
                             <span>🏹 Avcı (Ölürken birini götürür)</span>
                         </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <div class="toggle-switch">
-                                <input type="checkbox" id="role-witch">
-                                <span class="slider"></span>
-                            </div>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="role-witch" style="width: auto;">
                             <span>✨ Büyücü (1x kurtarma + 1x zehir)</span>
                         </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <div class="toggle-switch">
-                                <input type="checkbox" id="role-sheriff">
-                                <span class="slider"></span>
-                            </div>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="role-sheriff" style="width: auto;">
                             <span>⭐ Şerif (Oyu 2 sayılır)</span>
                         </label>
                     </div>
                 </div>
 
-                <!-- Sistem Ayarları (Toggle Style) -->
+                <!-- İttifak Sistemi -->
                 <div style="margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
-                    <p
-                        style="margin-bottom: 15px; font-weight: bold; border-left: 3px solid var(--accent-color); padding-left: 10px;">
-                        ⚙️ Sistem Ayarları:</p>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="enable-alliance" style="width: auto;">
+                        <span>🤝 <strong>İttifak Sistemi</strong></span>
+                    </label>
+                    <p style="font-size: 0.85rem; color: rgba(255,255,255,0.6); margin-top: 8px;">
+                        Oyuncular grup kurabilir. Gruptaki biri ölürse hepsi ölür!
+                    </p>
+                </div>
 
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <div class="toggle-switch">
-                                <input type="checkbox" id="enable-alliance">
-                                <span class="slider"></span>
-                            </div>
-                            <div>
-                                <span style="font-weight:bold;">🤝 İttifak Sistemi</span>
-                                <div style="font-size: 0.75rem; opacity: 0.7;">Grup kuranlar birlikte ölür</div>
-                            </div>
-                        </label>
-
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <div class="toggle-switch">
-                                <input type="checkbox" id="enable-voice" checked>
-                                <span class="slider"></span>
-                            </div>
-                            <div>
-                                <span style="font-weight:bold;">🎙️ Sesli Sohbet (P2P)</span>
-                                <div style="font-size: 0.75rem; opacity: 0.7;">Bas-konuş özelliği</div>
-                            </div>
-                        </label>
-                    </div>
+                <!-- Sesli İletişim -->
+                <div style="margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <!-- VOICE TOGGLE (Keeping toggle for system settings if user liked it? No, revert for consistency) -->
+                        <!-- Actually user only complained about the roles button logic. I will revert to standard checkbox to be safe -->
+                        <input type="checkbox" id="enable-voice" checked style="width: auto;">
+                        <span>🎙️ <strong>Bas-Konuş Sistemi</strong></span>
+                    </label>
+                    <p style="font-size: 0.85rem; color: rgba(255,255,255,0.6); margin-top: 8px;">
+                        Oyuncular butona basarak konuşabilir. (Ücretsiz P2P)
+                    </p>
                 </div>
 
                 <button class="btn btn-action" onclick="createRoom()">Oluştur</button>
