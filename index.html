@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ff00">v2.3.1 (LOGIC
-                    FIX)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ffff">v2.4.0 (HOST
+                    SYNC)</small>
             </h1>
 
             <div class="form-section">
@@ -1137,13 +1137,24 @@
                         // NEW FEATURE: Changeable Night Actions - do not auto-resolve
                         // checkAllNightActions();
 
-                        // SEER FIX: Immediate Feedback
+                        // SEER FIX: Immediate Feedback + NERF (1 Time Use, Masked Role)
                         if (data.action === 'inspect' && data.target) {
+                            if (gameState.abilitiesUsed && gameState.abilitiesUsed[fromPeerId]) {
+                                const conn = connections[fromPeerId];
+                                if (conn) conn.send({ type: 'notification', message: '❌ Kahin gücünü bu oyunda zaten kullandın!', urgency: 'high' });
+                                return;
+                            }
+
                             const targetPlayer = gameState.players[data.target];
                             if (targetPlayer) {
-                                const roleName = getRoleName(targetPlayer.role);
+                                // Mark used
+                                if (!gameState.abilitiesUsed) gameState.abilitiesUsed = {};
+                                gameState.abilitiesUsed[fromPeerId] = true;
+
                                 const isBad = ['vampire', 'traitor'].includes(targetPlayer.role);
-                                const msg = `🔮 KAHİN GÖRÜSÜ: ${targetPlayer.name} bir ${roleName} ${isBad ? '🔴 (DÜŞMAN)' : '🟢 (DOST)'}`;
+                                // NERF: Do NOT show exact role. Only Friend/Enemy.
+                                const msg = `🔮 KAHİN GÖRÜSÜ: ${targetPlayer.name} bir ${isBad ? '🔴 (DÜŞMAN)' : '🟢 (DOST)'}`;
+
                                 // Send ONLY to the Seer
                                 const seerConn = connections[fromPeerId];
                                 if (seerConn && seerConn.open) {
@@ -1528,10 +1539,13 @@
             gameState.allianceEnabled = document.getElementById('enable-alliance').checked;
             gameState.alliances = {};
             gameState.nextAllianceId = 1;
+            gameState.abilitiesUsed = {}; // NEW FEATURE: Track ability usage (Seer limit)
 
             broadcastState();
             // Send game start signal with state to ensure sync
             broadcast({ type: 'game_start', state: gameState });
+
+            showScreen('game'); // HOST SYNC FIX: Explicitly switch to game screen
             updateUI();
 
             // Send explicit role info to each player (just in case)
