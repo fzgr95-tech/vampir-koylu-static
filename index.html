@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00d4ff">v2.9.3 (ROLE
-                    DESCRIPTIONS)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00d4ff">v2.9.4 (TOGGLE
+                    POLISH)</small>
             </h1>
 
             <div class="form-section">
@@ -521,88 +521,77 @@
                     </label>
                 </div>
 
-                <!-- Özel Roller (Master Toggle System) -->
-                <div
-                    style="margin: 15px 0; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <span style="font-weight: bold; font-size: 1.1rem; color: var(--primary-color);">🎭 Özel
-                            Roller</span>
-                        <!-- MASTER TOGGLE -->
-                        <label style="cursor: pointer; display: flex; align-items: center;">
-                            <div class="toggle-switch">
-                                <input type="checkbox" id="toggle-special-roles" checked
-                                    onchange="document.getElementById('special-roles-grid').classList.toggle('hidden');">
-                                <span class="slider"></span>
-                            </div>
-                        </label>
-                    </div>
+                <!-- Özel Roller (Polished Toggles) -->
+                <div style="margin: 15px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <p
+                        style="margin-bottom: 15px; font-weight: bold; border-left: 3px solid var(--primary-color); padding-left: 10px;">
+                        🎭 Özel Roller:</p>
 
-                    <div id="special-roles-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                         <label
-                            style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px;">
-                            <div class="toggle-switch small">
+                            style="display: flex; align-items: center; gap: 12px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; transition: background 0.2s;">
+                            <div class="toggle-switch">
                                 <input type="checkbox" id="role-doctor" checked>
                                 <span class="slider"></span>
                             </div>
                             <div style="display: flex; flex-direction: column;">
-                                <span style="font-size: 0.9rem; font-weight: bold;">💉 Doktor</span>
-                                <span style="font-size: 0.7rem; opacity: 0.7;">Geceleri korur</span>
+                                <span style="font-size: 0.95rem; font-weight: bold;">💉 Doktor</span>
+                                <span style="font-size: 0.75rem; opacity: 0.7;">Geceleri korur</span>
                             </div>
                         </label>
                         <label
-                            style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px;">
-                            <div class="toggle-switch small">
+                            style="display: flex; align-items: center; gap: 12px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; transition: background 0.2s;">
+                            <div class="toggle-switch">
                                 <input type="checkbox" id="role-seer" checked>
                                 <span class="slider"></span>
                             </div>
                             <div style="display: flex; flex-direction: column;">
-                                <span style="font-size: 0.9rem; font-weight: bold;">🔮 Medyum</span>
-                                <span style="font-size: 0.7rem; opacity: 0.7;">Geceleri sorgular</span>
+                                <span style="font-size: 0.95rem; font-weight: bold;">🔮 Medyum</span>
+                                <span style="font-size: 0.75rem; opacity: 0.7;">Geceleri sorgular</span>
                             </div>
                         </label>
                         <label
-                            style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px;">
-                            <div class="toggle-switch small">
+                            style="display: flex; align-items: center; gap: 12px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; transition: background 0.2s;">
+                            <div class="toggle-switch">
                                 <input type="checkbox" id="role-traitor">
                                 <span class="slider"></span>
                             </div>
                             <div style="display: flex; flex-direction: column;">
-                                <span style="font-size: 0.9rem; font-weight: bold;">🐀 Köstebek</span>
-                                <span style="font-size: 0.7rem; opacity: 0.7;">Vampirle çalışır</span>
+                                <span style="font-size: 0.95rem; font-weight: bold;">🐀 Köstebek</span>
+                                <span style="font-size: 0.75rem; opacity: 0.7;">Vampirle çalışır</span>
                             </div>
                         </label>
                         <label
-                            style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px;">
-                            <div class="toggle-switch small">
+                            style="display: flex; align-items: center; gap: 12px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; transition: background 0.2s;">
+                            <div class="toggle-switch">
                                 <input type="checkbox" id="role-hunter">
                                 <span class="slider"></span>
                             </div>
                             <div style="display: flex; flex-direction: column;">
-                                <span style="font-size: 0.9rem; font-weight: bold;">🏹 Avcı</span>
-                                <span style="font-size: 0.7rem; opacity: 0.7;">Ölürken alır</span>
+                                <span style="font-size: 0.95rem; font-weight: bold;">🏹 Avcı</span>
+                                <span style="font-size: 0.75rem; opacity: 0.7;">Ölürken alır</span>
                             </div>
                         </label>
                         <label
-                            style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px;">
-                            <div class="toggle-switch small">
+                            style="display: flex; align-items: center; gap: 12px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; transition: background 0.2s;">
+                            <div class="toggle-switch">
                                 <input type="checkbox" id="role-witch">
                                 <span class="slider"></span>
                             </div>
                             <div style="display: flex; flex-direction: column;">
-                                <span style="font-size: 0.9rem; font-weight: bold;">✨ Büyücü</span>
-                                <span style="font-size: 0.7rem; opacity: 0.7;">İksir ustası</span>
+                                <span style="font-size: 0.95rem; font-weight: bold;">✨ Büyücü</span>
+                                <span style="font-size: 0.75rem; opacity: 0.7;">İksir ustası</span>
                             </div>
                         </label>
                         <label
-                            style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px;">
-                            <div class="toggle-switch small">
+                            style="display: flex; align-items: center; gap: 12px; cursor: pointer; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; transition: background 0.2s;">
+                            <div class="toggle-switch">
                                 <input type="checkbox" id="role-sheriff">
                                 <span class="slider"></span>
                             </div>
                             <div style="display: flex; flex-direction: column;">
-                                <span style="font-size: 0.9rem; font-weight: bold;">⭐ Şerif</span>
-                                <span style="font-size: 0.7rem; opacity: 0.7;">Oyu 2 sayılır</span>
+                                <span style="font-size: 0.95rem; font-weight: bold;">⭐ Şerif</span>
+                                <span style="font-size: 0.75rem; opacity: 0.7;">Oyu 2 sayılır</span>
                             </div>
                         </label>
                     </div>
