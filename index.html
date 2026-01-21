@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff00ff">v2.3.0 (DYNAMIC
-                    UPDATE)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ff00">v2.3.1 (LOGIC
+                    FIX)</small>
             </h1>
 
             <div class="form-section">
@@ -1134,7 +1134,23 @@
                 case 'night_action':
                     if (isHost) {
                         gameState.nightActions[fromPeerId] = { action: data.action, target: data.target };
-                        checkAllNightActions();
+                        // NEW FEATURE: Changeable Night Actions - do not auto-resolve
+                        // checkAllNightActions();
+
+                        // SEER FIX: Immediate Feedback
+                        if (data.action === 'inspect' && data.target) {
+                            const targetPlayer = gameState.players[data.target];
+                            if (targetPlayer) {
+                                const roleName = getRoleName(targetPlayer.role);
+                                const isBad = ['vampire', 'traitor'].includes(targetPlayer.role);
+                                const msg = `🔮 KAHİN GÖRÜSÜ: ${targetPlayer.name} bir ${roleName} ${isBad ? '🔴 (DÜŞMAN)' : '🟢 (DOST)'}`;
+                                // Send ONLY to the Seer
+                                const seerConn = connections[fromPeerId];
+                                if (seerConn && seerConn.open) {
+                                    seerConn.send({ type: 'notification', message: msg, urgency: 'high' });
+                                }
+                            }
+                        }
                     }
                     break;
 
@@ -1666,6 +1682,19 @@
                 if (c > max) { max = c; victims = [id]; }
                 else if (c === max) victims.push(id);
             });
+
+            // NEW FEATURE: Vampire Tie-Breaker
+            // If there is a tie, check if any Vampire voted for one of the victims.
+            if (victims.length > 1) {
+                const vampires = Object.values(gameState.players).filter(p => p.isAlive && p.role === 'vampire');
+                // Find first victim that has a vampire vote
+                const vampireChoice = victims.find(vID => vampires.some(vam => vam.vote === vID));
+
+                if (vampireChoice) {
+                    victims = [vampireChoice]; // Tie broken by Vampire power!
+                    // Optional: Notification? "Vampirlerin karanlık etkisiyle eşitlik bozuldu..."
+                }
+            }
 
             let msg = '';
             let hunterTriggered = false;
