@@ -470,7 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff00ff">v2.2.6 (TRACE)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#008080">v2.2.7 (ROUTING
+                    FIX)</small>
             </h1>
 
             <div class="form-section">
@@ -1202,6 +1203,7 @@
 
                 // IMPORTANT: Set isHost BEFORE initPeer so connection handlers work correctly!
                 isHost = true;
+                isLobbyManager = false; // CRITICAL: Stop acting as lobby manager when hosting a game!
 
                 // CRITICAL: Host must register with roomCode as their Peer ID!
                 // This allows clients to connect via peer.connect(roomCode)
