@@ -470,7 +470,7 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#cc66ff">v2.2.1 (LOBBY
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ffd700">v2.2.2 (HOST
                     FIX)</small>
             </h1>
 
@@ -1170,19 +1170,22 @@
                 // Create Room UI immediately
                 showToast('Oda oluşturuluyor...', 'info');
 
+                // IMPORTANT: Set isHost BEFORE initPeer so connection handlers work correctly!
+                isHost = true;
+
                 // CRITICAL: Host must register with roomCode as their Peer ID!
                 // This allows clients to connect via peer.connect(roomCode)
                 try {
                     if (peer) peer.destroy(); // Always recreate to ensure correct ID
-                    await initPeer(roomCode); // <-- THE FIX: Use roomCode as Peer ID!
+                    await initPeer(roomCode); // <-- Use roomCode as Peer ID!
                 } catch (e) {
                     console.error('PeerJS init failed:', e);
+                    isHost = false; // Reset on failure
                     showToast('Sunucu bağlantı hatası. Lütfen tekrar deneyin.', 'error');
                     return; // Cannot proceed without valid peer
                 }
 
                 // SETUP GAME STATE
-                isHost = true;
                 gameState.players[myPeerId] = { name: myUsername, role: null, isAlive: true, vote: null };
 
                 gameState.voiceEnabled = document.getElementById('enable-voice').checked;
