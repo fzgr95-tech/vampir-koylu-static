@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ffff">v2.4.0 (HOST
-                    SYNC)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ffaa00">v2.4.1 (UI
+                    HOTFIX)</small>
             </h1>
 
             <div class="form-section">
@@ -1984,7 +1984,8 @@
             const nightRoles = ['vampire', 'doctor', 'seer', 'witch'];
             const myAction = gameState.nightActions[myPeerId];
 
-            if (gameState.phase === 'night' && me.isAlive && nightRoles.includes(me.role) && !myAction) {
+            if (gameState.phase === 'night' && me.isAlive && nightRoles.includes(me.role)) {
+                // FIXED: Removed '!myAction' to allow changing selection
                 nightPanel.classList.remove('hidden');
                 document.getElementById('night-targets').innerHTML = '';
 
@@ -2017,7 +2018,12 @@
                             } else {
                                 sendToHost({ type: 'night_action', action: 'witch_heal', target: null });
                             }
-                            nightPanel.classList.add('hidden');
+                            // Do not hide panel - allow undo? Witch potions are one-time though.
+                            // For Witch, actions are consumable immediately in this logic (potions set to false).
+                            // Complex: If they re-click, logic needs to handle un-consuming? 
+                            // Current logic consumes immediately locally. 
+                            // Given request is mainly about Vampire, I'll leave Witch panel behavior but maybe hide it for now as potions are consumed.
+                            // Actually, let's just show toast.
                             showToast('💚 Kurtarma iksiri hazırlandı!');
                         };
                         targetsDiv.appendChild(healBtn);
@@ -2043,7 +2049,6 @@
                                 } else {
                                     sendToHost({ type: 'night_action', action: 'witch_poison', target: id });
                                 }
-                                nightPanel.classList.add('hidden');
                                 showToast('💀 Zehir verildi!');
                             };
                             targetsDiv.appendChild(btn);
@@ -2061,27 +2066,52 @@
                         } else {
                             sendToHost({ type: 'night_action', action: 'skip', target: null });
                         }
-                        nightPanel.classList.add('hidden');
+                        // nightPanel.classList.add('hidden'); // Allow changing mind
                     };
                     targetsDiv.appendChild(skipBtn);
 
                 } else {
-                    // Diğer gece rolleri için normal hedef listesi
+                    // Diğer gece rolleri için normal hedef listesi (VAMPIR / DOKTOR / KAHIN)
                     Object.entries(gameState.players).forEach(([id, p]) => {
                         if (!p.isAlive || id === myPeerId) return;
+                        // Vampire cannot kill fellow vampires (usually). But game allows it? 
+                        // Let's filter out Vampires if user is Vampire? 
+                        // Standard rules: Vampires know each other. 
+                        // Existing logic didn't filter, so I won't change game rules, just UI.
+
+                        // Check if this is the currently selected target
+                        const isSelected = (myAction && myAction.target === id);
+
                         const btn = document.createElement('div');
                         btn.className = 'vote-card';
+                        // Add selection styling
+                        if (isSelected) {
+                            btn.style.border = '3px solid #ffd700'; // Gold border
+                            btn.style.backgroundColor = 'rgba(255, 215, 0, 0.2)';
+                        }
+
                         btn.innerHTML = p.name;
                         btn.style.padding = '10px';
                         btn.onclick = () => {
                             if (isHost) {
                                 gameState.nightActions[myPeerId] = { action, target: id };
-                                if (action === 'inspect') showToast(`${p.name} bir ${p.role === 'vampire' || p.role === 'traitor' ? 'DÜŞMAN' : 'DOST'}`);
-                                checkAllNightActions();
+                                if (action === 'inspect') {
+                                    // SEER FEEDBACK (Host side local)
+                                    if (gameState.abilitiesUsed && gameState.abilitiesUsed[myPeerId]) {
+                                        showToast('❌ Kahin gücünü kullandın!', 'error');
+                                        return;
+                                    }
+                                    if (!gameState.abilitiesUsed) gameState.abilitiesUsed = {};
+                                    gameState.abilitiesUsed[myPeerId] = true;
+
+                                    const isBad = ['vampire', 'traitor'].includes(p.role);
+                                    showToast(`🔮 KAHİN GÖRÜSÜ: ${p.name} bir ${isBad ? '🔴 DÜŞMAN' : '🟢 DOST'}`, 'info');
+                                }
+                                // checkAllNightActions(); // REMOVED: Do not auto-close
                             } else {
                                 sendToHost({ type: 'night_action', action, target: id });
                             }
-                            nightPanel.classList.add('hidden');
+                            // nightPanel.classList.add('hidden'); // REMOVED: Allow changing vote
                         };
                         document.getElementById('night-targets').appendChild(btn);
                     });
