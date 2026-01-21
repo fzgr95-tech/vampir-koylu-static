@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ffcc00">v2.0.7 (PC
-                    BYPASS)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#00ff88">v2.1.0 (NETWORK
+                    FIX)</small>
             </h1>
 
             <div class="form-section">
@@ -803,14 +803,29 @@
                 const config = {
                     config: {
                         iceServers: [
+                            // STUN (Discovery)
                             { urls: 'stun:stun.l.google.com:19302' },
                             { urls: 'stun:stun1.l.google.com:19302' },
-                            { urls: 'stun:stun2.l.google.com:19302' },
-                            { urls: 'stun:stun3.l.google.com:19302' },
-                            { urls: 'stun:stun4.l.google.com:19302' },
-                            { urls: 'stun:global.stun.twilio.com:3478' }
+                            { urls: 'stun:global.stun.twilio.com:3478' },
+                            // TURN (Relay - Critical for Home NATs!)
+                            {
+                                urls: 'turn:openrelay.metered.ca:80',
+                                username: 'openrelayproject',
+                                credential: 'openrelayproject'
+                            },
+                            {
+                                urls: 'turn:openrelay.metered.ca:443',
+                                username: 'openrelayproject',
+                                credential: 'openrelayproject'
+                            },
+                            {
+                                urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                                username: 'openrelayproject',
+                                credential: 'openrelayproject'
+                            }
                         ],
-                        sdpSemantics: 'unified-plan'
+                        sdpSemantics: 'unified-plan',
+                        iceCandidatePoolSize: 10
                     },
                     debug: 1
                 };
