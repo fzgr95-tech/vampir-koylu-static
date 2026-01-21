@@ -470,8 +470,8 @@
     <div class="container">
         <!-- ANA EKRAN -->
         <div id="screen-home" class="screen active">
-            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#ff3333">v2.5.0 (TIE
-                    BREAKER)</small>
+            <h1 class="game-title">🧛 VAMPİR KÖYLÜ<br><small style="font-size:1rem;color:#4ade80">v2.6.0 (ROLE
+                    LIST)</small>
             </h1>
 
             <div class="form-section">
@@ -698,6 +698,11 @@
         <div id="screen-end" class="screen">
             <h1 id="end-title" style="font-size: 2rem; text-align: center; margin-bottom: 20px;"></h1>
             <p id="end-message" style="text-align: center; margin-bottom: 30px;"></p>
+
+            <!-- Role List -->
+            <div id="end-role-list"
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px;">
+            </div>
 
             <div id="end-host-controls" class="hidden" style="margin-bottom: 20px;">
                 <button class="btn btn-primary" onclick="resetGame()">🔄 YENİ OYUN</button>
@@ -2251,6 +2256,20 @@
             return map[role] || '👁️'; // Default to Spectator Eye instead of ?
         }
 
+        function getRoleName(role) {
+            const map = {
+                vampire: 'Vampir',
+                villager: 'Köylü',
+                doctor: 'Doktor',
+                seer: 'Kahin',
+                traitor: 'Köstebek',
+                hunter: 'Avcı',
+                witch: 'Büyücü',
+                sheriff: 'Şerif'
+            };
+            return map[role] || role.toUpperCase();
+        }
+
         function backToHome() {
             if (peer) peer.destroy();
             location.reload();
@@ -2443,6 +2462,29 @@
                 document.getElementById('end-title').style.color = '#ff4444';
             }
             document.getElementById('end-message').innerText = msg;
+
+            // NEW FEATURE: Populate End Role List
+            const list = document.getElementById('end-role-list');
+            list.innerHTML = '';
+            Object.values(gameState.players).forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'vote-card';
+                div.style.textAlign = 'center';
+                div.style.backgroundColor = p.isAlive ? 'rgba(74, 222, 128, 0.1)' : 'rgba(255, 68, 68, 0.1)';
+                div.style.borderColor = p.isAlive ? '#4ade80' : '#ff4444';
+                div.style.padding = '10px';
+
+                // Truncate name if too long
+                const nameDisplay = p.name.length > 12 ? p.name.substring(0, 10) + '..' : p.name;
+
+                div.innerHTML = `
+                    <div style="font-weight:bold; color:white; font-size:1rem;">${nameDisplay}</div>
+                    <div style="font-size:1.5rem; margin:5px 0;">${getRoleEmoji(p.role)}</div>
+                    <div style="font-size:0.8rem; color:#ddd; text-transform:uppercase;">${getRoleName(p.role)}</div>
+                    <div style="font-size:0.75rem; margin-top:5px; color:${p.isAlive ? '#4ade80' : '#ff4444'}">${p.isAlive ? '✅ YAŞIYOR' : '💀 ÖLDÜ'}</div>
+                `;
+                list.appendChild(div);
+            });
 
             // Show New Game button for Host
             if (isHost) {
