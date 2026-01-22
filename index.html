@@ -850,10 +850,18 @@
             }
 
             // Lobide de sesli sohbeti göster
-            if (name === 'lobby' && lobbyVoiceControls) {
-                lobbyVoiceControls.style.display = 'flex';
-                // Mikrofon izni al ve sesli sohbeti başlat
-                initAudio();
+            if (lobbyVoiceControls) {
+                if (name === 'lobby') {
+                    console.log('Showing Lobby Voice Controls'); // DEBUG
+                    lobbyVoiceControls.style.display = 'flex';
+                    lobbyVoiceControls.style.visibility = 'visible'; // Force visibility
+                    // Mikrofon izni al ve sesli sohbeti başlat
+                    initAudio().catch(e => console.error('InitAudio Error:', e));
+                } else {
+                    lobbyVoiceControls.style.display = 'none';
+                }
+            } else {
+                console.error('Lobby Voice Controls Element NOT FOUND');
             }
         }
 
