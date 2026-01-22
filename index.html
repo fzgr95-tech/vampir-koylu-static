@@ -665,6 +665,20 @@
                     <button class="btn btn-primary" onclick="sendLobbyChat()">➤</button>
                 </div>
             </div>
+
+            <!-- Lobi Sesli Sohbet Kontrolleri -->
+            <div id="lobby-voice-controls"
+                style="margin-top: 15px; padding: 15px; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px; text-align: center;">
+                <div style="margin-bottom: 10px; font-size: 0.9rem; opacity: 0.8;" id="lobby-voice-status">🎤 Sesli
+                    sohbet için butona bas</div>
+                <button id="lobby-ptt-btn" class="btn btn-primary"
+                    style="width: 80px; height: 80px; border-radius: 50%; font-size: 2rem; padding: 0; display: flex; align-items: center; justify-content: center; margin: 0 auto;"
+                    onmousedown="startTalking()" onmouseup="stopTalking()" ontouchstart="startTalking()"
+                    ontouchend="stopTalking()">
+                    🎙️
+                </button>
+                <div style="font-size: 0.8rem; margin-top: 8px; opacity: 0.6;">Bas ve Konuş</div>
+            </div>
         </div>
 
         <!-- OYUN EKRANI -->
@@ -828,10 +842,19 @@
 
             // Voice Chat UI Visibility
             const voiceControls = document.getElementById('voice-chat-controls');
+            const lobbyVoiceControls = document.getElementById('lobby-voice-controls');
+
             if (name === 'game' && gameState.voiceEnabled) {
                 voiceControls.classList.remove('hidden');
             } else {
                 voiceControls.classList.add('hidden');
+            }
+
+            // Lobide de sesli sohbeti göster
+            if (name === 'lobby' && lobbyVoiceControls) {
+                lobbyVoiceControls.style.display = 'block';
+                // Mikrofon izni al ve sesli sohbeti başlat
+                initAudio();
             }
         }
 
@@ -2473,19 +2496,48 @@
         }
 
         function startTalking() {
-            if (!localStream || !gameState.voiceEnabled) return;
-            localStream.getAudioTracks()[0].enabled = true;
-            document.getElementById('btn-mic').style.background = '#00d4ff';
-            document.getElementById('btn-mic').style.transform = 'scale(1.1)';
-
-            // Konuştuğunu görselleştir (Opsiyonel: Veri gönder)
+            if (!localStream) {
+                initAudio();
+                return;
+            }
+            if (localStream.getAudioTracks().length > 0) {
+                localStream.getAudioTracks()[0].enabled = true;
+            }
+            // Game button
+            const gameBtn = document.getElementById('btn-mic');
+            if (gameBtn) {
+                gameBtn.style.background = '#00d4ff';
+                gameBtn.style.transform = 'scale(1.1)';
+            }
+            // Lobby button
+            const lobbyBtn = document.getElementById('lobby-ptt-btn');
+            const lobbyStatus = document.getElementById('lobby-voice-status');
+            if (lobbyBtn) {
+                lobbyBtn.style.background = 'var(--secondary-color)';
+                lobbyBtn.style.boxShadow = '0 0 20px var(--secondary-color)';
+            }
+            if (lobbyStatus) lobbyStatus.innerText = '🔴 KONUŞUYORSUN';
         }
 
         function stopTalking() {
             if (!localStream) return;
-            localStream.getAudioTracks()[0].enabled = false;
-            document.getElementById('btn-mic').style.background = '#444';
-            document.getElementById('btn-mic').style.transform = 'scale(1.0)';
+            if (localStream.getAudioTracks().length > 0) {
+                localStream.getAudioTracks()[0].enabled = false;
+            }
+            // Game button
+            const gameBtn = document.getElementById('btn-mic');
+            if (gameBtn) {
+                gameBtn.style.background = '#444';
+                gameBtn.style.transform = 'scale(1.0)';
+            }
+            // Lobby button
+            const lobbyBtn = document.getElementById('lobby-ptt-btn');
+            const lobbyStatus = document.getElementById('lobby-voice-status');
+            if (lobbyBtn) {
+                lobbyBtn.style.background = 'var(--primary-color)';
+                lobbyBtn.style.boxShadow = '';
+            }
+            if (lobbyStatus) lobbyStatus.innerText = '🎤 Mikrofon hazır - Konuşmak için bas';
         }
 
         function toggleGlobalVoice() {
