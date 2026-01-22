@@ -787,33 +787,7 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script>
-        console.log('--- Vampir Köylü v1.8 JS INJECT MODE ---'); // VERSION CHECK
-
-        // FORCE INJECT BUTTON
-        window.addEventListener('load', () => {
-            console.log('Window Loaded: Injecting Voice Button...');
-            const btnDiv = document.createElement('div');
-            btnDiv.id = 'force-voice-btn';
-            btnDiv.style.position = 'fixed';
-            btnDiv.style.bottom = '20px';
-            btnDiv.style.right = '20px'; // Right side
-            btnDiv.style.zIndex = '100000';
-            btnDiv.style.background = 'red';
-            btnDiv.style.padding = '20px';
-            btnDiv.style.borderRadius = '50%';
-            btnDiv.style.cursor = 'pointer';
-            btnDiv.style.boxShadow = '0 0 20px black';
-            btnDiv.innerHTML = '<span style="font-size: 30px;">🎙️</span>';
-
-            btnDiv.onmousedown = startTalking;
-            btnDiv.onmouseup = stopTalking;
-            btnDiv.ontouchstart = startTalking;
-            btnDiv.ontouchend = stopTalking;
-
-            document.body.appendChild(btnDiv);
-            console.log('Button Injected Successfully to Body');
-        });
-
+        console.log('--- Vampir Köylü v1.9 FINAL CHECK ---'); // VERSION CHECK
         // ========== GLOBAL STATE ==========
         let peer = null;
         let connections = {};
@@ -2830,6 +2804,32 @@
             };
             return map[role] || (role ? role.toUpperCase() : 'İZLEYİCİ');
         }
+
+        // FORCE INJECT BUTTON (Retry at end of script)
+        console.log('Script End Reached: Injecting Button Now');
+        const btnDiv = document.createElement('div');
+        btnDiv.id = 'force-voice-btn-final';
+        btnDiv.style.position = 'fixed';
+        btnDiv.style.bottom = '100px'; // Slightly higher
+        btnDiv.style.right = '20px';
+        btnDiv.style.zIndex = '999999';
+        btnDiv.style.background = 'linear-gradient(45deg, #ff0000, #ff5500)';
+        btnDiv.style.width = '80px';
+        btnDiv.style.height = '80px';
+        btnDiv.style.borderRadius = '50%';
+        btnDiv.style.cursor = 'pointer';
+        btnDiv.style.boxShadow = '0 0 30px rgba(255,0,0,0.8)';
+        btnDiv.style.display = 'flex';
+        btnDiv.style.alignItems = 'center';
+        btnDiv.style.justifyContent = 'center';
+        btnDiv.innerHTML = '<span style="font-size: 40px;">🗣️</span>';
+
+        btnDiv.onmousedown = startTalking;
+        btnDiv.onmouseup = stopTalking;
+        btnDiv.ontouchstart = startTalking;
+        btnDiv.ontouchend = stopTalking;
+
+        document.body.appendChild(btnDiv);
 
         // Start App
         initApp();
