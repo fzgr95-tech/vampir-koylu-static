@@ -787,7 +787,7 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script>
-        console.log('--- Vampir Köylü v2.1 - ALERT CHECK ---'); // VERSION CHECK
+        console.log('--- Vampir Köylü v2.3 - INPUT FIX ---'); // VERSION CHECK
         // ========== GLOBAL STATE ==========
         let peer = null;
         let connections = {};
@@ -1325,12 +1325,37 @@
 
         // ========== ROOM & GAME LOGIC ==========
         async function createRoom() {
-            try {
-                console.log('Create Room clicked');
-                myUsername = document.getElementById('username-input').value.trim();
-                if (!myUsername) return showToast('Lütfen ismini gir!', 'error');
+            console.log('Create Room Button Clicked'); // DEBUG
 
-                roomCode = generateRoomCode();
+            const usernameInput = document.getElementById('username-input');
+            myUsername = usernameInput.value.trim() || 'Oyuncu-' + Math.floor(Math.random() * 1000);
+
+            if (!myUsername) {
+                showToast('Lütfen kullanıcı adı girin!', 'error');
+                console.error('Create Room Failed: No username');
+                return;
+            }
+
+            if (!peer || !myPeerId) {
+                showToast('Sunucu bağlantısı bekleniyor... Lütfen bekleyin.', 'warning');
+                console.error('Create Room Failed: No Peer Connection', { peer: !!peer, myPeerId });
+                // Re-init peer if missing
+                if (!peer) initPeer();
+                return;
+            }
+
+            console.log('Creating room with user:', myUsername);
+
+            const roomCodeInput = document.getElementById('room-code-input');
+            const roomCode = roomCodeInput.value.trim() || generateRoomCode();
+
+            // UI Updates
+            if (document.getElementById('setup-screen')) {
+                document.getElementById('setup-screen').classList.add('hidden');
+            }
+
+            try {
+                // ... rest of logic
                 gameState.roomName = document.getElementById('room-name-input').value || 'Oda ' + roomCode;
                 gameState.password = document.getElementById('room-password-input').value.trim();
                 gameState.vampireCount = parseInt(document.getElementById('vampire-count-input').value);
@@ -2823,9 +2848,7 @@
 
         // FORCE INJECT BUTTON (Retry at end of script)
         console.log('Script End Reached: Injecting Permanent Voice Button');
-        alert('SESLİ SOHBET BUTONU YÜKLENDİ');
-        // ALERT FOR DEBUGGING
-        // alert("YENİ SÜRÜM YÜKLENDİ: v2.1\nSesli Sohbet Butonu Sağ Altta!"); 
+        // Alert removed for stability 
 
         // Önce eskisi varsa sil (tekrar inject edilirse)
         const oldBtn = document.getElementById('force-voice-btn-final');

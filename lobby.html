@@ -787,7 +787,7 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script>
-        console.log('--- Vampir Köylü v2.0 - Lobby Special ---'); // VERSION CHECK
+        console.log('--- Vampir Köylü v2.2 - STABILITY FIX ---'); // VERSION CHECK
         // ========== GLOBAL STATE ==========
         let peer = null;
         let connections = {};
@@ -1325,12 +1325,37 @@
 
         // ========== ROOM & GAME LOGIC ==========
         async function createRoom() {
-            try {
-                console.log('Create Room clicked');
-                myUsername = document.getElementById('username-input').value.trim();
-                if (!myUsername) return showToast('Lütfen ismini gir!', 'error');
+            console.log('Create Room Button Clicked'); // DEBUG
 
-                roomCode = generateRoomCode();
+            const usernameInput = document.getElementById('username-input');
+            myUsername = usernameInput.value.trim() || 'Oyuncu-' + Math.floor(Math.random() * 1000);
+
+            if (!myUsername) {
+                showToast('Lütfen kullanıcı adı girin!', 'error');
+                console.error('Create Room Failed: No username');
+                return;
+            }
+
+            if (!peer || !myPeerId) {
+                showToast('Sunucu bağlantısı bekleniyor... Lütfen bekleyin.', 'warning');
+                console.error('Create Room Failed: No Peer Connection', { peer: !!peer, myPeerId });
+                // Re-init peer if missing
+                if (!peer) initPeer();
+                return;
+            }
+
+            console.log('Creating room with user:', myUsername);
+
+            const roomCodeInput = document.getElementById('room-code-input');
+            const roomCode = roomCodeInput.value.trim() || generateRoomCode();
+
+            // UI Updates
+            if (document.getElementById('setup-screen')) {
+                document.getElementById('setup-screen').classList.add('hidden');
+            }
+
+            try {
+                // ... rest of logic
                 gameState.roomName = document.getElementById('room-name-input').value || 'Oda ' + roomCode;
                 gameState.password = document.getElementById('room-password-input').value.trim();
                 gameState.vampireCount = parseInt(document.getElementById('vampire-count-input').value);
@@ -1657,7 +1682,7 @@
 
         function startDayPhase() {
             gameState.phase = 'day';
-            gameState.countdown = gameState.duration;
+            gameState.countdown = 10; // First day intro
             gameState.chaosEvent = null;
 
             // Chaos Event (%50 şans)
@@ -1778,7 +1803,7 @@
             if (isHost) {
                 me.vote = targetId;
                 // NEW FEATURE: Votes are changeable, so we DO NOT checkAllVoted()
-                // checkAllVoted(); 
+                // checkAllVoted();
                 broadcastState(); // Broadcast the new vote instantly
             } else {
                 sendToHost({ type: 'vote', target: targetId });
@@ -1852,7 +1877,7 @@
             // If there is a tie, Vampires get to CHOOSE who hangs.
             if (victims.length > 1) {
                 // EXCEPTION regarding Chaos Event 'double': If it's double trouble, keep original logic?
-                // The user request didn't specify interaction with Double Trouble. 
+                // The user request didn't specify interaction with Double Trouble.
                 // Assuming "Eşitlik durumunda vampir seçsin" overrides unless specific chaos.
                 // But Double Trouble explicitly kills TWO people on tie. Implementation Plan didn't cover exclude.
                 // Let's check Chaos Event.
@@ -2227,8 +2252,8 @@
                             }
                             // Do not hide panel - allow undo? Witch potions are one-time though.
                             // For Witch, actions are consumable immediately in this logic (potions set to false).
-                            // Complex: If they re-click, logic needs to handle un-consuming? 
-                            // Current logic consumes immediately locally. 
+                            // Complex: If they re-click, logic needs to handle un-consuming?
+                            // Current logic consumes immediately locally.
                             // Given request is mainly about Vampire, I'll leave Witch panel behavior but maybe hide it for now as potions are consumed.
                             // Actually, let's just show toast.
                             showToast('💚 Kurtarma iksiri hazırlandı!');
@@ -2281,9 +2306,9 @@
                     // Diğer gece rolleri için normal hedef listesi (VAMPIR / DOKTOR / KAHIN)
                     Object.entries(gameState.players).forEach(([id, p]) => {
                         if (!p.isAlive || id === myPeerId) return;
-                        // Vampire cannot kill fellow vampires (usually). But game allows it? 
-                        // Let's filter out Vampires if user is Vampire? 
-                        // Standard rules: Vampires know each other. 
+                        // Vampire cannot kill fellow vampires (usually). But game allows it?
+                        // Let's filter out Vampires if user is Vampire?
+                        // Standard rules: Vampires know each other.
                         // Existing logic didn't filter, so I won't change game rules, just UI.
 
                         // Check if this is the currently selected target
@@ -2823,8 +2848,6 @@
 
         // FORCE INJECT BUTTON (Retry at end of script)
         console.log('Script End Reached: Injecting Permanent Voice Button');
-
-        // Önce eskisi varsa sil (tekrar inject edilirse)
         const oldBtn = document.getElementById('force-voice-btn-final');
         if (oldBtn) oldBtn.remove();
 
