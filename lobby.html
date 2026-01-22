@@ -668,21 +668,7 @@
 
             <!-- Lobi Sesli Sohbet Kontrolleri (FIXED POSITION) -->
             <!-- Lobi Sesli Sohbet Kontrolleri (V2.4 DIRECT) -->
-            <div id="lobby-voice-final"
-                style="position: fixed; bottom: 30px; right: 30px; z-index: 2147483647; display: flex; flex-direction: column; align-items: center; pointer-events: auto;">
-
-                <div id="lobby-mic-status"
-                    style="background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 6px; font-size: 11px; margin-bottom: 5px; color:white; border: 1px solid rgba(255,255,255,0.2);">
-                    Bas Konuş
-                </div>
-
-                <button id="lobby-mic-btn-v2"
-                    style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid white; background: rgba(0, 0, 0, 0.6); color: white; font-size: 32px; cursor: pointer; backdrop-filter: blur(4px); box-shadow: 0 0 20px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; transition: all 0.1s;"
-                    onmousedown="startTalking()" onmouseup="stopTalking()" ontouchstart="startTalking()"
-                    ontouchend="stopTalking()">
-                    🎙️
-                </button>
-            </div>
+            <!-- Lobi Sesli Sohbet Kontrolleri removed (Moved to Body Root) -->
         </div>
 
         <!-- OYUN EKRANI -->
@@ -791,8 +777,26 @@
 
     <div class="toast-container" id="toast-container"></div>
 
+    <!-- Lobi Sesli Sohbet Kontrolleri (V2.5 BODY ROOT) -->
+    <!-- Başlangıçta gizli (display: none) -->
+    <div id="lobby-voice-final"
+        style="display: none; position: fixed; bottom: 30px; right: 30px; z-index: 2147483647; flex-direction: column; align-items: center; pointer-events: auto;">
+
+        <div id="lobby-mic-status"
+            style="background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 6px; font-size: 11px; margin-bottom: 5px; color:white; border: 1px solid rgba(255,255,255,0.2);">
+            Bas Konuş
+        </div>
+
+        <button id="lobby-mic-btn-v2"
+            style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid white; background: rgba(0, 0, 0, 0.6); color: white; font-size: 32px; cursor: pointer; backdrop-filter: blur(4px); box-shadow: 0 0 20px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; transition: all 0.1s;"
+            onmousedown="startTalking()" onmouseup="stopTalking()" ontouchstart="startTalking()"
+            ontouchend="stopTalking()">
+            🎙️
+        </button>
+    </div>
+
     <script>
-        console.log('--- Vampir Köylü v2.4 - HTML INJECT ---'); // VERSION CHECK
+        console.log('--- Vampir Köylü v2.8 - LOBBY FALLBACK ---'); // VERSION CHECK
         // ========== GLOBAL STATE ==========
         let peer = null;
         let connections = {};
@@ -857,18 +861,17 @@
             }
 
             // Lobide de sesli sohbeti göster
-            if (lobbyVoiceControls) {
-                if (name === 'lobby') {
-                    console.log('Showing Lobby Voice Controls'); // DEBUG
-                    lobbyVoiceControls.style.display = 'flex';
-                    lobbyVoiceControls.style.visibility = 'visible'; // Force visibility
-                    // Mikrofon izni al ve sesli sohbeti başlat
-                    initAudio().catch(e => console.error('InitAudio Error:', e));
-                } else {
-                    lobbyVoiceControls.style.display = 'none';
+            // Lobide de sesli sohbeti göster (V2.5 Body Root Logic)
+            const lobbyVoiceBtn = document.getElementById('lobby-voice-final');
+            if (name === 'lobby') {
+                if (lobbyVoiceBtn) {
+                    lobbyVoiceBtn.style.display = 'flex';
+                    lobbyVoiceBtn.style.visibility = 'visible';
                 }
+                // Mikrofon izni al ve sesli sohbeti başlat
+                initAudio().catch(e => console.error('InitAudio Error:', e));
             } else {
-                console.error('Lobby Voice Controls Element NOT FOUND');
+                if (lobbyVoiceBtn) lobbyVoiceBtn.style.display = 'none';
             }
         }
 
@@ -1687,7 +1690,7 @@
 
         function startDayPhase() {
             gameState.phase = 'day';
-            gameState.countdown = 10; // First day intro
+            gameState.countdown = gameState.duration;
             gameState.chaosEvent = null;
 
             // Chaos Event (%50 şans)
@@ -1808,7 +1811,7 @@
             if (isHost) {
                 me.vote = targetId;
                 // NEW FEATURE: Votes are changeable, so we DO NOT checkAllVoted()
-                // checkAllVoted();
+                // checkAllVoted(); 
                 broadcastState(); // Broadcast the new vote instantly
             } else {
                 sendToHost({ type: 'vote', target: targetId });
@@ -1882,7 +1885,7 @@
             // If there is a tie, Vampires get to CHOOSE who hangs.
             if (victims.length > 1) {
                 // EXCEPTION regarding Chaos Event 'double': If it's double trouble, keep original logic?
-                // The user request didn't specify interaction with Double Trouble.
+                // The user request didn't specify interaction with Double Trouble. 
                 // Assuming "Eşitlik durumunda vampir seçsin" overrides unless specific chaos.
                 // But Double Trouble explicitly kills TWO people on tie. Implementation Plan didn't cover exclude.
                 // Let's check Chaos Event.
@@ -2257,8 +2260,8 @@
                             }
                             // Do not hide panel - allow undo? Witch potions are one-time though.
                             // For Witch, actions are consumable immediately in this logic (potions set to false).
-                            // Complex: If they re-click, logic needs to handle un-consuming?
-                            // Current logic consumes immediately locally.
+                            // Complex: If they re-click, logic needs to handle un-consuming? 
+                            // Current logic consumes immediately locally. 
                             // Given request is mainly about Vampire, I'll leave Witch panel behavior but maybe hide it for now as potions are consumed.
                             // Actually, let's just show toast.
                             showToast('💚 Kurtarma iksiri hazırlandı!');
@@ -2311,9 +2314,9 @@
                     // Diğer gece rolleri için normal hedef listesi (VAMPIR / DOKTOR / KAHIN)
                     Object.entries(gameState.players).forEach(([id, p]) => {
                         if (!p.isAlive || id === myPeerId) return;
-                        // Vampire cannot kill fellow vampires (usually). But game allows it?
-                        // Let's filter out Vampires if user is Vampire?
-                        // Standard rules: Vampires know each other.
+                        // Vampire cannot kill fellow vampires (usually). But game allows it? 
+                        // Let's filter out Vampires if user is Vampire? 
+                        // Standard rules: Vampires know each other. 
                         // Existing logic didn't filter, so I won't change game rules, just UI.
 
                         // Check if this is the currently selected target
@@ -2634,7 +2637,7 @@
         // ========== INIT APP & UI LISTENERS ==========
 
         async function initApp() {
-            console.log('App v1.6 Initializing...');
+
 
             // Otomatik Peer Başlat (Lobiye bağlanmak için)
             if (!peer) {
@@ -2869,6 +2872,9 @@
 
         // FORCE INJECT BUTTON (Retry at end of script)
         console.log('Script End Reached: Injecting Permanent Voice Button');
+        // Alert removed for stability 
+
+        // Önce eskisi varsa sil (tekrar inject edilirse)
         const oldBtn = document.getElementById('force-voice-btn-final');
         if (oldBtn) oldBtn.remove();
 
