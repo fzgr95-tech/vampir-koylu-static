@@ -787,7 +787,7 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script>
-        console.log('--- Vampir Köylü v1.9 FINAL CHECK ---'); // VERSION CHECK
+        console.log('--- Vampir Köylü v2.1 - ALERT CHECK ---'); // VERSION CHECK
         // ========== GLOBAL STATE ==========
         let peer = null;
         let connections = {};
@@ -2823,6 +2823,9 @@
 
         // FORCE INJECT BUTTON (Retry at end of script)
         console.log('Script End Reached: Injecting Permanent Voice Button');
+        alert('SESLİ SOHBET BUTONU YÜKLENDİ');
+        // ALERT FOR DEBUGGING
+        // alert("YENİ SÜRÜM YÜKLENDİ: v2.1\nSesli Sohbet Butonu Sağ Altta!"); 
 
         // Önce eskisi varsa sil (tekrar inject edilirse)
         const oldBtn = document.getElementById('force-voice-btn-final');
