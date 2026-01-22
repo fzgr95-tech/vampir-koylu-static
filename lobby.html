@@ -796,7 +796,7 @@
     </div>
 
     <script>
-        console.log('--- Vampir Köylü v2.8 - LOBBY FALLBACK ---'); // VERSION CHECK
+        console.log('--- Vampir Köylü v2.9 - VOICE MESH FIX ---'); // VERSION CHECK
         // ========== GLOBAL STATE ==========
         let peer = null;
         let connections = {};
@@ -2502,11 +2502,15 @@
 
                 // Gelen aramaları dinle
                 peer.on('call', call => {
+                    console.log('Receiving call from:', call.peer);
                     call.answer(localStream);
                     call.on('stream', remoteStream => {
                         playAudioStream(remoteStream);
                     });
                 });
+
+                // Call everyone currently in the room
+                joinVoiceChat();
 
             } catch (err) {
                 console.error('Audio init error:', err);
@@ -2522,7 +2526,9 @@
             Object.keys(gameState.players).forEach(pid => {
                 if (pid === myPeerId) return;
                 if (gameState.players[pid].isBot) return; // SKIP BOTS in Voice Chat
+                if (audioPeers[pid] && audioPeers[pid].open) return; // Already connected
 
+                console.log('Calling peer:', pid);
                 const call = peer.call(pid, localStream);
                 call.on('stream', remoteStream => {
                     playAudioStream(remoteStream);
