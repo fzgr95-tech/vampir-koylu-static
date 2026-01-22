@@ -667,12 +667,17 @@
             </div>
 
             <!-- Lobi Sesli Sohbet Kontrolleri (FIXED POSITION) -->
-            <div id="lobby-voice-controls"
-                style="position: fixed; bottom: 20px; right: 20px; padding: 15px; background: rgba(0, 0, 0, 0.9); border: 2px solid var(--primary-color); border-radius: 12px; text-align: center; display: flex; flex-direction: column; align-items: center; z-index: 9999; box-shadow: 0 0 20px rgba(0,0,0,0.5);">
-                <div style="margin-bottom: 5px; font-size: 0.8rem; font-weight: bold; color: white;"
-                    id="lobby-voice-status">🎤 Sesli Sohbet</div>
-                <button id="lobby-ptt-btn" class="btn btn-primary"
-                    style="width: 70px; height: 70px; border-radius: 50%; font-size: 1.8rem; padding: 0; display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 0 15px var(--primary-color);"
+            <!-- Lobi Sesli Sohbet Kontrolleri (V2.4 DIRECT) -->
+            <div id="lobby-voice-final"
+                style="position: fixed; bottom: 30px; right: 30px; z-index: 2147483647; display: flex; flex-direction: column; align-items: center; pointer-events: auto;">
+
+                <div id="lobby-mic-status"
+                    style="background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 6px; font-size: 11px; margin-bottom: 5px; color:white; border: 1px solid rgba(255,255,255,0.2);">
+                    Bas Konuş
+                </div>
+
+                <button id="lobby-mic-btn-v2"
+                    style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid white; background: rgba(0, 0, 0, 0.6); color: white; font-size: 32px; cursor: pointer; backdrop-filter: blur(4px); box-shadow: 0 0 20px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; transition: all 0.1s;"
                     onmousedown="startTalking()" onmouseup="stopTalking()" ontouchstart="startTalking()"
                     ontouchend="stopTalking()">
                     🎙️
@@ -787,7 +792,7 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script>
-        console.log('--- Vampir Köylü v2.3 - INPUT FIX ---'); // VERSION CHECK
+        console.log('--- Vampir Köylü v2.4 - HTML INJECT ---'); // VERSION CHECK
         // ========== GLOBAL STATE ==========
         let peer = null;
         let connections = {};
@@ -2546,14 +2551,22 @@
             }
             // Lobby button (HTML)
             const lobbyBtn = document.getElementById('lobby-ptt-btn');
-            const lobbyStatus = document.getElementById('lobby-voice-status');
-            // Forced Button (JS Injected)
-            const forcedBtn = document.getElementById('force-voice-btn-final');
+            const lobbyStatus = document.getElementById('lobby-voice-status'); // Old
+            // V2 Button
+            const v2Btn = document.getElementById('lobby-mic-btn-v2');
+            const v2Status = document.getElementById('lobby-mic-status');
 
             if (lobbyBtn) {
                 lobbyBtn.style.background = 'var(--secondary-color)';
                 lobbyBtn.style.boxShadow = '0 0 20px var(--secondary-color)';
             }
+            if (v2Btn) {
+                v2Btn.style.background = '#ea00d9';
+                v2Btn.style.transform = 'scale(1.1)';
+                v2Btn.style.boxShadow = '0 0 30px #ea00d9';
+            }
+            if (v2Status) v2Status.innerText = '🔴 YAYINDA';
+            if (lobbyStatus) lobbyStatus.innerText = '🔴 KONUŞUYORSUN';
             if (forcedBtn) {
                 forcedBtn.style.background = '#ea00d9'; // Parlak mor/pembe
                 forcedBtn.style.boxShadow = '0 0 30px #ea00d9, 0 0 10px white';
@@ -2576,13 +2589,21 @@
             // Lobby button (HTML)
             const lobbyBtn = document.getElementById('lobby-ptt-btn');
             const lobbyStatus = document.getElementById('lobby-voice-status');
-            // Forced Button (JS Injected)
-            const forcedBtn = document.getElementById('force-voice-btn-final');
+            // V2 Button
+            const v2Btn = document.getElementById('lobby-mic-btn-v2');
+            const v2Status = document.getElementById('lobby-mic-status');
 
             if (lobbyBtn) {
                 lobbyBtn.style.background = 'var(--primary-color)';
                 lobbyBtn.style.boxShadow = '';
             }
+            if (v2Btn) {
+                v2Btn.style.background = 'rgba(0, 0, 0, 0.6)';
+                v2Btn.style.transform = 'scale(1.0)';
+                v2Btn.style.boxShadow = '0 0 20px rgba(0,0,0,0.5)';
+            }
+            if (v2Status) v2Status.innerText = 'Bas Konuş';
+            if (lobbyStatus) lobbyStatus.innerText = '🎤 Mikrofon hazır - Konuşmak için bas';
             if (forcedBtn) {
                 forcedBtn.style.background = 'rgba(0, 0, 0, 0.8)'; // Normal siyah
                 forcedBtn.style.boxShadow = '0 0 20px rgba(0,0,0,0.5)';
