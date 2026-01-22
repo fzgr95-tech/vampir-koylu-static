@@ -787,6 +787,7 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script>
+        console.log('--- Vampir Köylü v1.7 Loaded ---'); // VERSION CHECK
         // ========== GLOBAL STATE ==========
         let peer = null;
         let connections = {};
@@ -836,6 +837,7 @@
 
         // ========== UTILITIES ==========
         function showScreen(name) {
+            console.log('showScreen called for:', name); // DEBUG
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('screen-' + name).classList.add('active');
 
