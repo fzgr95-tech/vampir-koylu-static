@@ -1642,35 +1642,72 @@
             gameState.voteDuration = parseInt(document.getElementById('vote-duration-input').value) || 30;
             gameState.killFrequency = document.getElementById('kill-frequency-input').value || 'every'; // New Setting
 
-            // Roles
-            const roles = [];
-            for (let i = 0; i < gameState.vampireCount; i++) roles.push('vampire');
-            if (document.getElementById('role-doctor').checked) roles.push('doctor');
-            if (document.getElementById('role-seer').checked) roles.push('seer');
-            if (document.getElementById('role-traitor').checked) roles.push('traitor');
-            if (document.getElementById('role-hunter').checked) roles.push('hunter');
-            if (document.getElementById('role-witch').checked) roles.push('witch');
-            if (document.getElementById('role-sheriff').checked) roles.push('sheriff');
+            // Roles Logic Refined
+            let availableRoles = [];
 
-            // Fill rest with Villagers
-            while (roles.length < players.length) roles.push('villager');
+            // 1. Always add Vampires first (Mandatory)
+            for (let i = 0; i < gameState.vampireCount; i++) availableRoles.push('vampire');
 
-            // Shuffle Roles (Fisher-Yates) - NEW FEATURE: Randomize Roles
-            for (let i = roles.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [roles[i], roles[j]] = [roles[j], roles[i]];
+            // 2. Collect potential special roles
+            const specialRoles = [];
+            if (document.getElementById('role-doctor').checked) specialRoles.push('doctor');
+            if (document.getElementById('role-seer').checked) specialRoles.push('seer');
+            if (document.getElementById('role-traitor').checked) specialRoles.push('traitor');
+            if (document.getElementById('role-hunter').checked) specialRoles.push('hunter');
+            if (document.getElementById('role-witch').checked) specialRoles.push('witch');
+            if (document.getElementById('role-sheriff').checked) specialRoles.push('sheriff');
+
+            // 3. Fill remaining slots
+            // We need exactly 'players.length' roles.
+            // Current count: availableRoles.length (Vampires)
+            // Slots left for specials: players.length - availableRoles.length
+
+            let slotsLeft = players.length - availableRoles.length;
+
+            if (slotsLeft < 0) {
+                // Determine error or cap?
+                // If we have more vampires than players, reduce vampires (should differ be validated before, but safe guard here)
+                availableRoles = availableRoles.slice(0, players.length);
+                slotsLeft = 0;
+            } else {
+                // Shuffle special roles to randomly pick which ones get in if we have too many
+                for (let i = specialRoles.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [specialRoles[i], specialRoles[j]] = [specialRoles[j], specialRoles[i]];
+                }
+
+                // Add as many special roles as fit
+                for (const role of specialRoles) {
+                    if (slotsLeft > 0) {
+                        availableRoles.push(role);
+                        slotsLeft--;
+                    }
+                }
+
+                // 4. Fill the rest with Villagers
+                while (slotsLeft > 0) {
+                    availableRoles.push('villager');
+                    slotsLeft--;
+                }
             }
 
-            // Assign Roles
-            // NEW FEATURE: Shuffle Players Array to ensure position randomness too
+            // 5. Shuffle the FINAL fixed-size list
+            // Now availableRoles.length === players.length (or strictly <= if logic holds)
+            for (let i = availableRoles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [availableRoles[i], availableRoles[j]] = [availableRoles[j], availableRoles[i]];
+            }
+
+            // 6. Assign Roles
             const shuffledPlayerIds = [...players];
+            // Shuffle players too for double randomness
             for (let i = shuffledPlayerIds.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [shuffledPlayerIds[i], shuffledPlayerIds[j]] = [shuffledPlayerIds[j], shuffledPlayerIds[i]];
             }
 
             shuffledPlayerIds.forEach((id, index) => {
-                gameState.players[id].role = roles[index];
+                gameState.players[id].role = availableRoles[index];
                 gameState.players[id].isAlive = true;
                 gameState.players[id].vote = null;
             });
