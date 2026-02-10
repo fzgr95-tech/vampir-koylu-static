@@ -1895,33 +1895,23 @@
             // NEW FEATURE: Vampire Decision Phase (Interactive Tie-Breaker)
             // If there is a tie, Vampires get to CHOOSE who hangs.
             if (victims.length > 1) {
-                // EXCEPTION regarding Chaos Event 'double': If it's double trouble, keep original logic?
-                // The user request didn't specify interaction with Double Trouble. 
-                // Assuming "Eşitlik durumunda vampir seçsin" overrides unless specific chaos.
-                // But Double Trouble explicitly kills TWO people on tie. Implementation Plan didn't cover exclude.
-                // Let's check Chaos Event.
-                if (gameState.chaosEvent?.id === 'double' && victims.length === 2) {
-                    // Proceed to double kill (logic below)
-                } else {
-                    // Switch to Decision Phase
-                    gameState.phase = 'vampire_decision';
-                    gameState.tiedVictims = victims;
-                    gameState.countdown = 15; // 15 seconds to decide
+                // TIE -> Vampire Decision Phase
+                gameState.phase = 'vampire_decision';
+                gameState.tiedVictims = victims;
+                gameState.countdown = 15;
 
+                broadcastState();
+                broadcast({ type: 'notification', message: '⚖️ Eşitlik! Vampirler karar veriyor...', urgency: 'medium' });
+
+                startCountdown(() => {
+                    // Timeout -> No one dies
+                    gameState.phase = 'night';
+                    gameState.tiedVictims = null;
+                    document.getElementById('game-message').innerText = '⏳ Karar verilemedi. Kimse asılmadı.';
                     broadcastState();
-                    broadcast({ type: 'notification', message: '⚖️ Eşitlik! Vampirler karar veriyor...', urgency: 'medium' });
-
-                    startCountdown(() => {
-                        // Timeout: Random or None. Defaulting to No One died (Standard).
-                        // Or random? "Oylama eşit ve vampir seçmedi -> Kimse ölmez".
-                        gameState.phase = 'night';
-                        gameState.tiedVictims = null;
-                        document.getElementById('game-message').innerText = '⏳ Karar verilemedi. Kimse asılmadı.';
-                        broadcastState();
-                        startNightPhase(); // Skip hanging
-                    });
-                    return; // PAUSE RESOLUTION HERE
-                }
+                    startNightPhase();
+                });
+                return; // STOP execution
             }
 
             let msg = '';
@@ -1932,28 +1922,15 @@
                 const victimId = victims[0];
                 const v = gameState.players[victimId];
                 v.isAlive = false;
-                killAllianceMembers(victimId); // İttifak arkadaşlarını da öldür
+                killAllianceMembers(victimId);
                 msg = `⚰️ ${v.name} asıldı! Rolü: ${getRoleEmoji(v.role)} ${v.role.toUpperCase()}`;
 
-                // Avcı öldüyse hedef seçmesi gerekiyor
                 if (v.role === 'hunter') {
                     hunterTriggered = true;
                     hunterVictimId = victimId;
                 }
             } else {
-                msg = '⚖️ Oylar eşit, kimse asılmadı.';
-                if (gameState.chaosEvent?.id === 'double' && victims.length === 2) {
-                    victims.forEach(id => {
-                        const v = gameState.players[id];
-                        v.isAlive = false;
-                        killAllianceMembers(id); // İttifak arkadaşlarını da öldür
-                        if (v.role === 'hunter') {
-                            hunterTriggered = true;
-                            hunterVictimId = id;
-                        }
-                    });
-                    msg = `⚡ ÇİFTE BELA! ${gameState.players[victims[0]].name} ve ${gameState.players[victims[1]].name} asıldı!`;
-                }
+                msg = '⚖️ Kimse asılmadı.';
             }
 
             document.getElementById('game-message').innerText = msg;
