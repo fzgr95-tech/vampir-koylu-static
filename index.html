@@ -1923,7 +1923,7 @@
                 const v = gameState.players[victimId];
                 v.isAlive = false;
                 killAllianceMembers(victimId);
-                msg = `⚰️ ${v.name} asıldı! Rolü: ${getRoleEmoji(v.role)} ${v.role.toUpperCase()}`;
+                msg = `⚰️ ${v.name} asıldı! Rolü: ${getRoleEmoji(v.role)} ${getRoleName(v.role)}`;
 
                 if (v.role === 'hunter') {
                     hunterTriggered = true;
@@ -2901,7 +2901,7 @@
                 'villager': 'KÖYLÜ',
                 'doctor': 'DOKTOR',
                 'seer': 'KAHİN',
-                'traitor': 'HAİN',
+                'traitor': 'KÖSTEBEK',
                 'hunter': 'AVCI',
                 'witch': 'BÜYÜCÜ',
                 'sheriff': 'ŞERİF'
