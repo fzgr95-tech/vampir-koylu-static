@@ -2441,21 +2441,62 @@
 
         // Dead Actions
         function haunt(effect) {
-            sendToHost({ type: 'haunt', effect });
+            if (isHost) {
+                broadcast({ type: 'haunt_effect', effect });
+                triggerHauntEffect(effect); // Host also sees it
+            } else {
+                sendToHost({ type: 'haunt', effect });
+            }
         }
 
         function triggerHauntEffect(effect) {
+            console.log('Haunt effect triggered:', effect); // DEBUG
+
             if (effect === 'vibrate') {
-                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                // Vibrate if supported
+                if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+
+                // Visual Shake (CSS) - Works on Desktop too
                 document.body.classList.add('shake');
+                showToast('👻 BİRİ SENİ TİTRETİYOR!', 'chaos');
+
+                // Remove class after animation
                 setTimeout(() => document.body.classList.remove('shake'), 500);
-                showToast('👻 Biri seni titretiyor!', 'chaos');
+
             } else if (effect === 'jumpscare') {
+                // JUMPSCARE: Scary Ghost Overlay
                 const ol = document.createElement('div');
-                ol.style.position = 'fixed'; ol.style.top = 0; ol.style.left = 0; ol.style.width = '100%'; ol.style.height = '100%';
-                ol.style.background = 'white'; ol.style.zIndex = 9999;
+                ol.style.position = 'fixed';
+                ol.style.top = '0';
+                ol.style.left = '0';
+                ol.style.width = '100vw';
+                ol.style.height = '100vh';
+                ol.style.background = 'black';
+                ol.style.zIndex = '10000';
+                ol.style.display = 'flex';
+                ol.style.alignItems = 'center';
+                ol.style.justifyContent = 'center';
+
+                // Scary Face URL (Using a generic placeholder if no asset, or a base64 if needed. 
+                // For now, let's use a text-based or simple CSS ghost if no image is available, 
+                // but user asked for "Hayalet falan ciksin". 
+                // I will use a reliable external placeholder or emojis for now to be safe, 
+                // or better: generated CSS Ghost)
+
+                ol.innerHTML = `
+                    <div style="font-size: 15rem; animation: info-pulse 0.1s infinite;">👻</div>
+                    <h1 style="position:absolute; bottom:20%; color:red; font-size:5rem; font-family: 'Creepster', cursive, sans-serif;">BÖÖÖ!</h1>
+                `;
+
+                // Play sound if possible (Browser policy might block)
+                // const audio = new Audio('scream.mp3'); audio.play().catch(e => console.log(e));
+
                 document.body.appendChild(ol);
-                setTimeout(() => ol.remove(), 100);
+
+                // Vibrations
+                if (navigator.vibrate) navigator.vibrate([500]);
+
+                setTimeout(() => ol.remove(), 800); // Remove after 0.8s
             }
         }
 
