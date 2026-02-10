@@ -637,6 +637,11 @@
 
         <!-- LOBİ EKRANI -->
         <div id="screen-lobby" class="screen">
+            <!-- Ana Menü Butonu (Sol Üst) -->
+            <button class="btn btn-text" onclick="backToHome()"
+                style="position: absolute; top: 20px; left: 20px; width: auto; font-size: 0.9rem; z-index: 100;">🏠 Ana
+                Menü</button>
+
             <h2 style="text-align: center; margin-bottom: 10px;" id="lobby-title">Lobi</h2>
             <p style="text-align: center; margin-bottom: 20px;">
                 Oda Kodu: <strong id="room-code-display" style="color: var(--primary-color);"></strong>
@@ -654,7 +659,6 @@
 
 
 
-            <button class="btn btn-text" onclick="backToHome()" style="margin-top: 20px;">🏠 Ana Menü</button>
             <!-- Lobi Sohbet -->
             <div class="chat-container">
                 <h4 style="margin-bottom: 10px;">💬 Sohbet</h4>
